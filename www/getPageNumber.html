@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Auth Zalando API</title>
+
+    <script src="./js/jquery-1.x-git.min.js"></script>
+
+    <script type="application/javascript">
+        var apiURLgetPageNumber = "https://shoes.ourapp.it/api?type=getPageNumber";
+        var jqxhr = $.get( apiURLgetPageNumber, function(data, textStatus, jqXHR) {
+            console.log("Risposta: " + data);
+        })
+        .fail(function(error) {
+            console.log("Errore nella richiesta della pagina.");
+            console.log(error);
+        })
+    </script>
+</head>
+<body>
+
+</body>
+</html>
