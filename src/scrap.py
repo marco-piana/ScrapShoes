@@ -19,7 +19,7 @@ class PageCategory:
         self.products_urls = list()
 
         # Generare il primo oggetto parsato con il contenuto della prima pagina di categoria
-        html_filename = "%s_%d_%d.html" % (self.filepart, self.categoriaID, 1)
+        html_filename = "%s_%s_%d.html" % (self.filepart, self.categoriaID, 1)
         firstcategory_html = self.scrap_or_load(html_filename, self.url)
 
         # Salvo l'oggetto di BeautifulSoap relativo alla prima pagina di categoria
@@ -33,21 +33,31 @@ class PageCategory:
         len_a = int(len(a_num_pages) / 2)
         len_span = int(len(span_num_pages) / 2)
 
-        print(len_a)
-        print(len_span)
+        # Se entrambi sono diversi da zero vanno scrappate altre pagine altrimenti non faccio nulla
+        if len_a != 0 and len_span != 0:
 
-        # Se uno span prendo il terzo altrimenti il quarto a
-        if len_span == 2:
-            self.num_pages = int(a_num_pages[2].text)
-        else:
-            self.num_pages = int(a_num_pages[1].text)
+            # Se len_span 1 e len_a è 2 allora prendo a da 0 (2 pagine)
+            if len_span == 1 and len_a == 2:
+                self.num_pages = int(a_num_pages[0].text)
 
-        # Per ogni altra pagina di categoria
-        for i in range(2, self.num_pages+1):
-            html_filename = "%s_%d_%d.html" % (self.filepart, self.categoriaID, i)
-            category_html = self.scrap_or_load(html_filename, self.url, i)
-            soup = BeautifulSoup(category_html, "html.parser")
-            self.pages.append(soup)
+            # Se len_span 1 e len_a è 3 allora prendo a da 1 (3 pagine)
+            if len_span == 1 and len_a == 3:
+                self.num_pages = int(a_num_pages[1].text)
+
+            # Se len_span 1 e len_a è 4 allora prendo a da 2 (4 pagine)
+            if len_span == 1 and len_a == 4:
+                self.num_pages = int(a_num_pages[2].text)
+
+            # Se len_span 2 e len_a è 4 allora prendo a da 2 (5 o più pagine)
+            if len_span == 2 and len_a == 4:
+                self.num_pages = int(a_num_pages[2].text)
+
+            # Per ogni altra pagina di categoria
+            for i in range(2, self.num_pages+1):
+                html_filename = "%s_%s_%d.html" % (self.filepart, self.categoriaID, i)
+                category_html = self.scrap_or_load(html_filename, self.url, i)
+                soup = BeautifulSoup(category_html, "html.parser")
+                self.pages.append(soup)
 
 
     # Recupera da Internet il file se non presente su disco nella cartella di archivio
@@ -121,10 +131,10 @@ shoes = []
 
 # Urls delle categorie da dove estrarre i singoli articoli
 categorie_urls = [
-    "https://scarpesp.com/categoria-prodotto/donna/?count=36&paged=",
-    "https://scarpesp.com/categoria-prodotto/uomo/?count=36&paged=",
-    "https://scarpesp.com/categoria-prodotto/bambino/?count=36&paged=",
-    "https://scarpesp.com/categoria-prodotto/accessori/?count=36&paged=",
+    ["Donna", "https://scarpesp.com/categoria-prodotto/donna/?count=36&paged="],
+    ["Uomo", "https://scarpesp.com/categoria-prodotto/uomo/?count=36&paged="],
+    ["Bambino", "https://scarpesp.com/categoria-prodotto/bambino/?count=36&paged="],
+    ["Accessori", "https://scarpesp.com/categoria-prodotto/accessori/?count=36&paged="],
 ]
 
 # Indice della categorie
@@ -134,12 +144,13 @@ page_index = 1
 if __name__ == "__main__":
     start_time = time.time()
 
-
     html_filepath = "C:\\Users\\davide\\PycharmProjects\\ScrapShoes\\src\\"
-    c = PageCategory(html_filepath, categorie_urls[1], 1)
-    c.scrap_products_urls()
-    c.print_product_urls()
-    print("Sono stati estratti %d URL di Prodotti dalla categoria %s" % (len(c.products_urls), c.url))
+
+    for cat_url in categorie_urls:
+        c = PageCategory(html_filepath, cat_url[1], cat_url[0])
+        c.scrap_products_urls()
+        #c.print_product_urls()
+        print("Sono stati estratti %d URL di Prodotti dalla categoria %s" % (len(c.products_urls), c.url))
 
 
 
