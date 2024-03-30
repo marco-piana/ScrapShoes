@@ -17,9 +17,6 @@ class PageCategory:
         self.categoriaID = categoryID
         self.pages = list()
         self.products_urls = list()
-        self.products = list() # TODO: in memory list of products
-        self.url_pages = []  # TODO: generate category pages url
-        self.filenames = []  # TODO: disk file category list
 
         # Generare il primo oggetto parsato con il contenuto della prima pagina di categoria
         html_filename = "%s_%d_%d.html" % (self.filepart, self.categoriaID, 1)
@@ -30,7 +27,20 @@ class PageCategory:
         self.pages.append(soup)
 
         # Ricavo il numero di pagine totali da questa prima pagina
-        self.num_pages = int(len(self.pages[0].find_all("a", class_="page-numbers")) / 2)
+        a_num_pages = self.pages[0].find_all("a", class_="page-numbers")
+        span_num_pages = self.pages[0].find_all("span", class_="page-numbers")
+
+        len_a = int(len(a_num_pages) / 2)
+        len_span = int(len(span_num_pages) / 2)
+
+        print(len_a)
+        print(len_span)
+
+        # Se uno span prendo il terzo altrimenti il quarto a
+        if len_span == 2:
+            self.num_pages = int(a_num_pages[2].text)
+        else:
+            self.num_pages = int(a_num_pages[1].text)
 
         # Per ogni altra pagina di categoria
         for i in range(2, self.num_pages+1):
@@ -70,24 +80,28 @@ class PageCategory:
         f.write(html_cat_text)
         f.close()
 
-    def get_products_urls(self):
+    def print_product_urls(self):
+        for url in self.products_urls:
+            print(url)
 
-        txt_content = str(self.pages[0].findAll("script", {'type': 'text/template'})[2].text)
-        txt_content = txt_content.replace("\\t\\t\\n", "")
-        txt_content = txt_content.replace("\\n\\t\\n\\t", "")
-        txt_content = txt_content.replace("\\n", "")
-        txt_content = txt_content.replace("\\t\\t", "")
-        txt_content = txt_content.replace("\\t", "")
-        txt_content = txt_content.replace("\\/", "/")
-        txt_content = txt_content.replace("\\\\/", "/")
-        txt_content = txt_content.replace("\\\"", "\"")
+    def scrap_products_urls(self):
+        for page in self.pages:
 
-        soup = BeautifulSoup(txt_content, "html.parser")
-        products_html = soup.find_all("li", "product-col")
-        for product_li in products_html:
-            self.products_urls.append(product_li.a['href'])
+            # TODO: riconoscere meglio la parte di codice contente i dati da estrarre dei prodotti
+            txt_content = str(page.findAll("script", {'type': 'text/template'})[2].text)
+            txt_content = txt_content.replace("\\t\\t\\n", "")
+            txt_content = txt_content.replace("\\n\\t\\n\\t", "")
+            txt_content = txt_content.replace("\\n", "")
+            txt_content = txt_content.replace("\\t\\t", "")
+            txt_content = txt_content.replace("\\t", "")
+            txt_content = txt_content.replace("\\/", "/")
+            txt_content = txt_content.replace("\\\\/", "/")
+            txt_content = txt_content.replace("\\\"", "\"")
 
-
+            soup = BeautifulSoup(txt_content, "html.parser")
+            products_html = soup.find_all("li", "product-col")
+            for product_li in products_html:
+                self.products_urls.append(product_li.a['href'])
 
 
 # Singolo prodotto
@@ -108,6 +122,9 @@ shoes = []
 # Urls delle categorie da dove estrarre i singoli articoli
 categorie_urls = [
     "https://scarpesp.com/categoria-prodotto/donna/?count=36&paged=",
+    "https://scarpesp.com/categoria-prodotto/uomo/?count=36&paged=",
+    "https://scarpesp.com/categoria-prodotto/bambino/?count=36&paged=",
+    "https://scarpesp.com/categoria-prodotto/accessori/?count=36&paged=",
 ]
 
 # Indice della categorie
@@ -118,10 +135,20 @@ if __name__ == "__main__":
     start_time = time.time()
 
 
-
     html_filepath = "C:\\Users\\davide\\PycharmProjects\\ScrapShoes\\src\\"
-    c = PageCategory(html_filepath, categorie_urls[0], 0)
-    c.get_products_urls()
+    c = PageCategory(html_filepath, categorie_urls[1], 1)
+    c.scrap_products_urls()
+    c.print_product_urls()
+    print("Sono stati estratti %d URL di Prodotti dalla categoria %s" % (len(c.products_urls), c.url))
+
+
+
+
+
+
+
+
+
 
 
 
