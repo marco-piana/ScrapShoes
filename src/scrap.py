@@ -167,7 +167,7 @@ class Shoe:
         obj = self.page.findAll("script", {'type': 'text/template'})
 
         txt_content = ""
-        a=0
+        a = 0
         for sc in obj:
             try:
                 if sc['id'] == None:
@@ -175,7 +175,6 @@ class Shoe:
             except:
                 txt_content = obj[a].text
             a += 1
-
 
         txt_content = txt_content.replace("\\n\\t", "")
         txt_content = txt_content.replace("\\t\\t\\t\\t", "")
@@ -227,20 +226,22 @@ class Shoe:
             for tr in self.additionals:
                 self.additional_dict[tr.th.text] = tr.td.p.text
         except:
-            print("IMPOSSIBILE ACQUISIRE DATI DA %s" % self.html_filename)
+            raise
+
     def get_csv(self):
 
-        fields = list()
-        fields.append("%s%s%s" % ('\"', self.title, '\"'))
-        fields.append("%s%s%s" % ('\"', self.cod, '\"'))
-        fields.append("%s%s%s" % ('[', '; '.join(f'\"{x}\"' for x in self.categories), ']'))
-        fields.append("%s%s%s" % ('[', '; '.join(f'\"{x}\"' for x in self.tags), ']'))
-        fields.append("%s%s%s" % ('\"', self.price, '\"'))
-        fields.append("%s%s%s" % ('\"', self.main_image_url, '\"'))
-        fields.append("%s%s%s" % ('[', '; '.join(f'\"{x}\"' for x in self.images_urls), ']'))
-        fields.append("%s%s%s" % ('\"', self.descrizione, '\"'))
-        fields.append("%s%s%s" % (
-            '{', '; '.join('\"%s\": \"%s\"' % (x, self.additional_dict[x]) for x in self.additional_dict.keys()), '}'))
+        fields = dict()
+        fields["Titolo"] = self.title.strip()
+        fields["COD"] = self.cod.strip()
+        fields["Categorie"] = ';'.join(f'\"{x}\"' for x in self.categories)
+        fields["Tags"] = ';'.join(f'\"{x}\"' for x in self.tags)
+        fields["Prezzo"] = self.price.strip()
+        fields["Immagine Principale"] = self.main_image_url.strip()
+        fields["Immagini Secondarie"] = '; '.join(f'\"{x}\"' for x in self.images_urls)
+        fields["Descrizione HTML"] = self.descrizione
+
+        for key in self.additional_dict.keys():
+            fields[key] = self.additional_dict[key].strip()
 
         return fields
 
@@ -250,10 +251,10 @@ shoes = []
 
 # Urls delle categorie da dove estrarre i singoli articoli
 categorie_urls = [
-    #["Donna", "https://scarpesp.com/categoria-prodotto/donna/?count=36&paged="],
-    #["Uomo", "https://scarpesp.com/categoria-prodotto/uomo/?count=36&paged="],
-    #["Bambino", "https://scarpesp.com/categoria-prodotto/bambino/?count=36&paged="],
-    ["Accessori", "https://scarpesp.com/categoria-prodotto/accessori/?count=36&paged="],
+    ["Donna", "https://scarpesp.com/categoria-prodotto/donna/?count=36&paged="],
+    # ["Uomo", "https://scarpesp.com/categoria-prodotto/uomo/?count=36&paged="],
+    # ["Bambino", "https://scarpesp.com/categoria-prodotto/bambino/?count=36&paged="],
+    #["Accessori", "https://scarpesp.com/categoria-prodotto/accessori/?count=36&paged="],
 ]
 
 if __name__ == "__main__":
@@ -270,42 +271,50 @@ if __name__ == "__main__":
         product_urls.extend(c.products_urls)
         print("Sono stati estratti %d URL di Prodotti dalla categoria %s" % (len(c.products_urls), c.url))
 
-    header = [
-        "%s%s%s" % ('\"', "Titolo", '\"'),
-        "%s%s%s" % ('\"', "COD", '\"'),
-        "%s%s%s" % ('\"', "Categorie", '\"'),
-        "%s%s%s" % ('\"', "Tags", '\"'),
-        "%s%s%s" % ('\"', "Prezzo", '\"'),
-        "%s%s%s" % ('\"', "Immagine principale", '\"'),
-        "%s%s%s" % ('\"', "Immagini", '\"'),
-        "%s%s%s" % ('\"', "Descrizione HTML", '\"'),
-        "%s%s%s" % ('\"', "Aggiuntive HTML", '\"'),
-    ]
-    rows = list()
+        headers = ""
+        rows = list()
+        u = Shoe(html_filepath, product_urls[0], 0)
+        keys = u.get_csv().keys()
 
-    # print()
-    # for i in range(0, 1):
+        for i in range(0, len(product_urls)):
+            l = list()
+            try:
+                p = Shoe(html_filepath, product_urls[i], i)
+                fields = p.get_csv()
+                keys = fields.keys()
 
-    for i in range(0, len(product_urls)):
-        p = Shoe(html_filepath, product_urls[i], i)
-        lista = p.get_csv()
-        if len(lista) > 0:
-            rows.append(lista)
+                headers_tmp = '|'.join(f'\"{x}\"' for x in keys)
+                if len(headers_tmp) != len(headers):
+                    print("PRIMA: %s" % headers)
+                    headers = '|'.join(f'\"{x}\"' for x in keys)
+                    print("DOPO: %s" % headers)
 
-        print(lista)
-        # print("--------------------------------")
-        # print(p.title)
-        # print("--------------------------------")
-        # print(p.cod)
-        # print(p.categories)
-        # print(p.tags)
-        # print(p.price)
-        # print(p.main_image_url)
-        # print(p.images_urls)
-        # print(p.descrizione)
-        # print(p.additionals)
+                for key in fields.keys():
+                    l.append(fields[key])
 
-    numpy.savetxt('%s%s' % (html_filepath, "articoli.csv"), rows, delimiter=", ", fmt='% s', encoding="utf-8")
+                rows.append('|'.join(f'\"{x}\"' for x in l))
+
+                # print("--------------------------------")
+                # print(p.title)
+                # print("--------------------------------")
+                # print(p.cod)
+                # print(p.categories)
+                # print(p.tags)
+                # print(p.price)
+                # print(p.main_image_url)
+                # print(p.images_urls)
+                # print(p.descrizione)
+                # print(p.additionals)
+
+            except:
+                print(i)
+                print("IMPOSSIBILE ACQUISIRE DATI DA %s" % p.html_filename)
+
+        try:
+            numpy.savetxt('%s%s.csv' % (html_filepath, cat_url[0]), rows,
+                          header=headers, delimiter="|", fmt='% s', encoding="utf-8")
+        except:
+            raise
 
     end_time = time.time()
     elapsed_time = end_time - start_time
