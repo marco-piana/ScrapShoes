@@ -1,7 +1,11 @@
+import codecs
+import csv
 import os
 import urllib.parse
+import uuid
 from array import array
 
+import numpy
 import requests
 from bs4 import BeautifulSoup
 import io
@@ -53,12 +57,11 @@ class PageCategory:
                 self.num_pages = int(a_num_pages[2].text)
 
             # Per ogni altra pagina di categoria
-            for i in range(2, self.num_pages+1):
+            for i in range(2, self.num_pages + 1):
                 html_filename = "%s_%s_%d.html" % (self.filepart, self.categoriaID, i)
                 category_html = self.scrap_or_load(html_filename, self.url, i)
                 soup = BeautifulSoup(category_html, "html.parser")
                 self.pages.append(soup)
-
 
     # Recupera da Internet il file se non presente su disco nella cartella di archivio
     def scrap_or_load(self, html_filename, scrap_url, page=1):
@@ -116,14 +119,130 @@ class PageCategory:
 
 # Singolo prodotto
 class Shoe:
-    def __init__(self):
-        self.url = ""
-        self.urls_images = []
+    filepart = "shoe"
+
+    def __init__(self, filepath, url, id):
+        self.urls_images = list()
         self.title = ""
         self.price = ""
         self.cod = ""
-        self.categories = []
-        self.tags = []
+        self.categories = list()
+        self.tags = list()
+        self.main_image_url = ""
+        self.images_urls = list()
+        self.descrizione = ""
+        self.additionals = ""
+        self.additional_dict = {}
+
+        self.page = ""
+        self.filepath = filepath
+        self.url = url
+        self.id = id if id != "" else uuid.uuid4
+
+        self.html_filename = "%s_%s.html" % (self.filepart, self.id)
+
+        firstcategory_html = self.scrap_or_load(self.html_filename, self.url)
+        self.page = BeautifulSoup(firstcategory_html, "html.parser")
+
+        self.scrap_product()
+
+    def scrap_or_load(self, html_filename, url):
+        html_filepath = "%s%s" % (self.filepath, html_filename)
+        if os.path.isfile(html_filepath):
+            catfile = io.open(html_filepath, mode="r", encoding="UTF-8")
+            return catfile.read()
+        else:
+            html_text = requests.get(url).text
+            self.save_page(html_filename, html_text)
+            return html_text
+
+    def save_page(self, html_filename, html_text):
+        f = open("%s%s" % (self.filepath, html_filename), "w", encoding="UTF-8")
+        f.write(html_text)
+        f.close()
+
+    def scrap_product(self):
+
+        # TODO: riconoscere meglio la parte di codice contente i dati da estrarre dei prodotti
+        obj = self.page.findAll("script", {'type': 'text/template'})
+
+        txt_content = ""
+        a=0
+        for sc in obj:
+            try:
+                if sc['id'] == None:
+                    pass
+            except:
+                txt_content = obj[a].text
+            a += 1
+
+
+        txt_content = txt_content.replace("\\n\\t", "")
+        txt_content = txt_content.replace("\\t\\t\\t\\t", "")
+        txt_content = txt_content.replace("\\t\\t", "")
+        txt_content = txt_content.replace("\\t", "")
+        txt_content = txt_content.replace("\\n", "")
+        txt_content = txt_content.replace("\\/", "/")
+        txt_content = txt_content.replace("\\\"", "\"")
+        # TODO: capire come mai nell'estrazione sono errati i caratteri Unicode
+        txt_content = txt_content.replace("\\u00aa", u"\u00aa")
+        txt_content = txt_content.replace("\\u1d2c", u"\u1d2c")
+        txt_content = txt_content.replace("\\u00e0", u"\u00e0")
+        txt_content = txt_content[1:-1]
+
+        soup = BeautifulSoup(txt_content, "html.parser")
+        try:
+            # Titolo
+            self.title = soup.find_all("h2", {"class": "product_title"})[0].text
+
+            # Codice
+            self.cod = soup.find_all("span", {"class": "sku"})[0].text
+
+            # Categorie
+            categorie = soup.find("span", {"class": "posted_in"}).findChildren("a", recursive=False)
+            for categoria in categorie:
+                self.categories.append(categoria.text)
+
+            # Tags
+            tags = soup.find("span", {"class": "tagged_as"}).findChildren("a", recursive=False)
+            for tag in tags:
+                self.tags.append(tag.text)
+
+            # Prezzo
+            self.price = soup.find("span", {"class": "woocommerce-Price-amount"}).bdi.text
+
+            # Immagini
+            self.main_image_url = soup.find("img", {"class": "woocommerce-main-image"})["src"]
+            images_url = soup.find_all("img", {"class": "img-responsive"})
+            for i in range(0, int(len(images_url) / 2)):
+                self.images_urls.append(images_url[i]["src"])
+
+            # Descrizione
+            self.descrizione = soup.find("div", {"id": "tab-description"})
+
+            # Informazioni aggiuntive
+            self.additionals = soup.find("table", {"class": "woocommerce-product-attributes"})
+            self.additionals = self.additionals.find_all("tr")
+
+            for tr in self.additionals:
+                self.additional_dict[tr.th.text] = tr.td.p.text
+        except:
+            print("IMPOSSIBILE ACQUISIRE DATI DA %s" % self.html_filename)
+    def get_csv(self):
+
+        fields = list()
+        fields.append("%s%s%s" % ('\"', self.title, '\"'))
+        fields.append("%s%s%s" % ('\"', self.cod, '\"'))
+        fields.append("%s%s%s" % ('[', '; '.join(f'\"{x}\"' for x in self.categories), ']'))
+        fields.append("%s%s%s" % ('[', '; '.join(f'\"{x}\"' for x in self.tags), ']'))
+        fields.append("%s%s%s" % ('\"', self.price, '\"'))
+        fields.append("%s%s%s" % ('\"', self.main_image_url, '\"'))
+        fields.append("%s%s%s" % ('[', '; '.join(f'\"{x}\"' for x in self.images_urls), ']'))
+        fields.append("%s%s%s" % ('\"', self.descrizione, '\"'))
+        fields.append("%s%s%s" % (
+            '{', '; '.join('\"%s\": \"%s\"' % (x, self.additional_dict[x]) for x in self.additional_dict.keys()), '}'))
+
+        return fields
 
 
 # Lista di Shoe
@@ -131,49 +250,63 @@ shoes = []
 
 # Urls delle categorie da dove estrarre i singoli articoli
 categorie_urls = [
-    ["Donna", "https://scarpesp.com/categoria-prodotto/donna/?count=36&paged="],
-    ["Uomo", "https://scarpesp.com/categoria-prodotto/uomo/?count=36&paged="],
-    ["Bambino", "https://scarpesp.com/categoria-prodotto/bambino/?count=36&paged="],
+    #["Donna", "https://scarpesp.com/categoria-prodotto/donna/?count=36&paged="],
+    #["Uomo", "https://scarpesp.com/categoria-prodotto/uomo/?count=36&paged="],
+    #["Bambino", "https://scarpesp.com/categoria-prodotto/bambino/?count=36&paged="],
     ["Accessori", "https://scarpesp.com/categoria-prodotto/accessori/?count=36&paged="],
 ]
 
-# Indice della categorie
-categorie_index = 0
-page_index = 1
-
 if __name__ == "__main__":
     start_time = time.time()
+
+    product_urls = list()
 
     html_filepath = "C:\\Users\\davide\\PycharmProjects\\ScrapShoes\\src\\"
 
     for cat_url in categorie_urls:
         c = PageCategory(html_filepath, cat_url[1], cat_url[0])
         c.scrap_products_urls()
-        #c.print_product_urls()
+        # c.print_product_urls()
+        product_urls.extend(c.products_urls)
         print("Sono stati estratti %d URL di Prodotti dalla categoria %s" % (len(c.products_urls), c.url))
 
+    header = [
+        "%s%s%s" % ('\"', "Titolo", '\"'),
+        "%s%s%s" % ('\"', "COD", '\"'),
+        "%s%s%s" % ('\"', "Categorie", '\"'),
+        "%s%s%s" % ('\"', "Tags", '\"'),
+        "%s%s%s" % ('\"', "Prezzo", '\"'),
+        "%s%s%s" % ('\"', "Immagine principale", '\"'),
+        "%s%s%s" % ('\"', "Immagini", '\"'),
+        "%s%s%s" % ('\"', "Descrizione HTML", '\"'),
+        "%s%s%s" % ('\"', "Aggiuntive HTML", '\"'),
+    ]
+    rows = list()
 
+    # print()
+    # for i in range(0, 1):
 
+    for i in range(0, len(product_urls)):
+        p = Shoe(html_filepath, product_urls[i], i)
+        lista = p.get_csv()
+        if len(lista) > 0:
+            rows.append(lista)
 
+        print(lista)
+        # print("--------------------------------")
+        # print(p.title)
+        # print("--------------------------------")
+        # print(p.cod)
+        # print(p.categories)
+        # print(p.tags)
+        # print(p.price)
+        # print(p.main_image_url)
+        # print(p.images_urls)
+        # print(p.descrizione)
+        # print(p.additionals)
 
-
-
-
-
-
-
+    numpy.savetxt('%s%s' % (html_filepath, "articoli.csv"), rows, delimiter=", ", fmt='% s', encoding="utf-8")
 
     end_time = time.time()
     elapsed_time = end_time - start_time
     print("Elapsed time: ", elapsed_time)
-
-    # shoes = soup_page.find_all("li", class_="product-col")
-
-
-    ### Ricavo la lista delle URL di ogni articolo presente nella pagina
-    ### Per ogni articolo presente nella lista degli articoli
-    ### Creo il nuovo articolo Shoe e recupero i dati possibili
-    ### Carico la pagina specifica dell'articolo
-    ### Estraggo i dati mancanti dalla pagina specifica
-    ### Aggiungo l'articolo alla lista totale degli articoli
-    ### Trasformo in csv la lista totale deglli articoli
