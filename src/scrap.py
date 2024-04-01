@@ -1,10 +1,6 @@
-import codecs
-import csv
 import os
-import urllib.parse
+import sys
 import uuid
-from array import array
-
 import numpy
 import requests
 from bs4 import BeautifulSoup
@@ -117,9 +113,7 @@ class PageCategory:
                 self.products_urls.append(product_li.a['href'])
 
 
-# Singolo prodotto
-class Shoe:
-    filepart = "shoe"
+class PageProduct:
 
     def __init__(self, filepath, url, id):
         self.urls_images = list()
@@ -160,6 +154,30 @@ class Shoe:
         f = open("%s%s" % (self.filepath, html_filename), "w", encoding="UTF-8")
         f.write(html_text)
         f.close()
+
+    def scrap_product(self):
+        pass
+
+    def get_csv(self):
+
+        fields = dict()
+        fields["Titolo"] = self.title.strip()
+        fields["COD"] = self.cod.strip()
+        fields["Categorie"] = ','.join(f'\"{x}\"' for x in self.categories)
+        fields["Tags"] = ','.join(f'\"{x}\"' for x in self.tags)
+        fields["Prezzo"] = self.price.strip()
+        fields["Immagine Principale"] = self.main_image_url.strip()
+        fields["Immagini Secondarie"] = ','.join(f'\"{x}\"' for x in self.images_urls)
+        fields["Descrizione HTML"] = self.descrizione
+
+        for key in self.additional_dict.keys():
+            fields[key] = self.additional_dict[key].strip()
+
+        return fields
+
+
+class Accessorio(PageProduct):
+    filepart = "accessorio"
 
     def scrap_product(self):
 
@@ -228,22 +246,221 @@ class Shoe:
         except:
             raise
 
-    def get_csv(self):
 
-        fields = dict()
-        fields["Titolo"] = self.title.strip()
-        fields["COD"] = self.cod.strip()
-        fields["Categorie"] = ';'.join(f'\"{x}\"' for x in self.categories)
-        fields["Tags"] = ';'.join(f'\"{x}\"' for x in self.tags)
-        fields["Prezzo"] = self.price.strip()
-        fields["Immagine Principale"] = self.main_image_url.strip()
-        fields["Immagini Secondarie"] = '; '.join(f'\"{x}\"' for x in self.images_urls)
-        fields["Descrizione HTML"] = self.descrizione
+class Donna(PageProduct):
+    filepart = "donna"
 
-        for key in self.additional_dict.keys():
-            fields[key] = self.additional_dict[key].strip()
+    def scrap_product(self):
 
-        return fields
+        # TODO: riconoscere meglio la parte di codice contente i dati da estrarre dei prodotti
+        obj = self.page.findAll("script", {'type': 'text/template'})
+
+        txt_content = ""
+        a = 0
+        for sc in obj:
+            try:
+                if sc['id'] == None:
+                    pass
+            except:
+                txt_content = obj[a].text
+            a += 1
+
+        txt_content = txt_content.replace("\\n\\t", "")
+        txt_content = txt_content.replace("\\t\\t\\t\\t", "")
+        txt_content = txt_content.replace("\\t\\t", "")
+        txt_content = txt_content.replace("\\t", "")
+        txt_content = txt_content.replace("\\n", "")
+        txt_content = txt_content.replace("\\/", "/")
+        txt_content = txt_content.replace("\\\\/", "/")
+        txt_content = txt_content.replace("\\\"", "\"")
+        # TODO: capire come mai nell'estrazione sono errati i caratteri Unicode
+        txt_content = txt_content.replace("\\u00aa", u"\u00aa")
+        txt_content = txt_content.replace("\\u1d2c", u"\u1d2c")
+        txt_content = txt_content.replace("\\u00e0", u"\u00e0")
+        txt_content = txt_content[1:-1]
+
+        soup = BeautifulSoup(txt_content, "html.parser")
+        try:
+            # Titolo
+            self.title = soup.find_all("h2", {"class": "product_title"})[0].text
+
+            # Codice
+            self.cod = soup.find_all("span", {"class": "sku"})[0].text
+
+            # Categorie
+            categorie = soup.find("span", {"class": "posted_in"}).findChildren("a", recursive=False)
+            for categoria in categorie:
+                self.categories.append(categoria.text)
+
+            # Tags
+            tags = soup.find("span", {"class": "tagged_as"}).findChildren("a", recursive=False)
+            for tag in tags:
+                self.tags.append(tag.text)
+
+            # Prezzo
+            self.price = soup.find("span", {"class": "woocommerce-Price-amount"}).bdi.text
+
+            # Immagini
+            self.main_image_url = ""
+            images_url = soup.find_all("img", {"loading": "lazy"})
+            for i in range(0, len(images_url)):
+                self.images_urls.append(images_url[i]["src"])
+
+            # Descrizione
+            self.descrizione = soup.find("div", {"id": "tab-description"})
+
+            # Informazioni aggiuntive
+            self.additionals = soup.find("table", {"class": "woocommerce-product-attributes"})
+            self.additionals = self.additionals.find_all("tr")
+
+            for tr in self.additionals:
+                self.additional_dict[tr.th.text] = tr.td.p.text
+        except:
+            raise
+
+
+class Uomo(PageProduct):
+    filepart = "uomo"
+
+    def scrap_product(self):
+
+        # TODO: riconoscere meglio la parte di codice contente i dati da estrarre dei prodotti
+        obj = self.page.findAll("script", {'type': 'text/template'})
+
+        txt_content = ""
+        a = 0
+        for sc in obj:
+            try:
+                if sc['id'] == None:
+                    pass
+            except:
+                txt_content = obj[a].text
+            a += 1
+
+        txt_content = txt_content.replace("\\n\\t", "")
+        txt_content = txt_content.replace("\\t\\t\\t\\t", "")
+        txt_content = txt_content.replace("\\t\\t", "")
+        txt_content = txt_content.replace("\\t", "")
+        txt_content = txt_content.replace("\\n", "")
+        txt_content = txt_content.replace("\\/", "/")
+        txt_content = txt_content.replace("\\\\/", "/")
+        txt_content = txt_content.replace("\\\"", "\"")
+        # TODO: capire come mai nell'estrazione sono errati i caratteri Unicode
+        txt_content = txt_content.replace("\\u00aa", u"\u00aa")
+        txt_content = txt_content.replace("\\u1d2c", u"\u1d2c")
+        txt_content = txt_content.replace("\\u00e0", u"\u00e0")
+        txt_content = txt_content[1:-1]
+
+        soup = BeautifulSoup(txt_content, "html.parser")
+        try:
+            # Titolo
+            self.title = soup.find_all("h2", {"class": "product_title"})[0].text
+
+            # Codice
+            self.cod = soup.find_all("span", {"class": "sku"})[0].text
+
+            # Categorie
+            categorie = soup.find("span", {"class": "posted_in"}).findChildren("a", recursive=False)
+            for categoria in categorie:
+                self.categories.append(categoria.text)
+
+            # Tags
+            tags = soup.find("span", {"class": "tagged_as"}).findChildren("a", recursive=False)
+            for tag in tags:
+                self.tags.append(tag.text)
+
+            # Prezzo
+            self.price = soup.find("span", {"class": "woocommerce-Price-amount"}).bdi.text
+
+            # Immagini
+            self.main_image_url = ""
+            images_url = soup.find_all("img", {"loading": "lazy"})
+            for i in range(0, len(images_url)):
+                self.images_urls.append(images_url[i]["src"])
+
+            # Descrizione
+            self.descrizione = soup.find("div", {"id": "tab-description"})
+
+            # Informazioni aggiuntive
+            self.additionals = soup.find("table", {"class": "woocommerce-product-attributes"})
+            self.additionals = self.additionals.find_all("tr")
+
+            for tr in self.additionals:
+                self.additional_dict[tr.th.text] = tr.td.p.text
+        except:
+            raise
+
+
+class Bambino(PageProduct):
+    filepart = "bambino"
+
+    def scrap_product(self):
+
+        # TODO: riconoscere meglio la parte di codice contente i dati da estrarre dei prodotti
+        obj = self.page.findAll("script", {'type': 'text/template'})
+
+        txt_content = ""
+        a = 0
+        for sc in obj:
+            try:
+                if sc['id'] == None:
+                    pass
+            except:
+                txt_content = obj[a].text
+            a += 1
+
+        txt_content = txt_content.replace("\\n\\t", "")
+        txt_content = txt_content.replace("\\t\\t\\t\\t", "")
+        txt_content = txt_content.replace("\\t\\t", "")
+        txt_content = txt_content.replace("\\t", "")
+        txt_content = txt_content.replace("\\n", "")
+        txt_content = txt_content.replace("\\/", "/")
+        txt_content = txt_content.replace("\\\\/", "/")
+        txt_content = txt_content.replace("\\\"", "\"")
+        # TODO: capire come mai nell'estrazione sono errati i caratteri Unicode
+        txt_content = txt_content.replace("\\u00aa", u"\u00aa")
+        txt_content = txt_content.replace("\\u1d2c", u"\u1d2c")
+        txt_content = txt_content.replace("\\u00e0", u"\u00e0")
+        txt_content = txt_content[1:-1]
+
+        soup = BeautifulSoup(txt_content, "html.parser")
+        try:
+            # Titolo
+            self.title = soup.find_all("h2", {"class": "product_title"})[0].text
+
+            # Codice
+            self.cod = soup.find_all("span", {"class": "sku"})[0].text
+
+            # Categorie
+            categorie = soup.find("span", {"class": "posted_in"}).findChildren("a", recursive=False)
+            for categoria in categorie:
+                self.categories.append(categoria.text)
+
+            # Tags
+            tags = soup.find("span", {"class": "tagged_as"}).findChildren("a", recursive=False)
+            for tag in tags:
+                self.tags.append(tag.text)
+
+            # Prezzo
+            self.price = soup.find("span", {"class": "woocommerce-Price-amount"}).bdi.text
+
+            # Immagini
+            self.main_image_url = ""
+            images_url = soup.find_all("img", {"loading": "lazy"})
+            for i in range(0, len(images_url)):
+                self.images_urls.append(images_url[i]["src"])
+
+            # Descrizione
+            self.descrizione = soup.find("div", {"id": "tab-description"})
+
+            # Informazioni aggiuntive
+            self.additionals = soup.find("table", {"class": "woocommerce-product-attributes"})
+            self.additionals = self.additionals.find_all("tr")
+
+            for tr in self.additionals:
+                self.additional_dict[tr.th.text] = tr.td.p.text
+        except:
+            raise
 
 
 # Lista di Shoe
@@ -252,67 +469,63 @@ shoes = []
 # Urls delle categorie da dove estrarre i singoli articoli
 categorie_urls = [
     ["Donna", "https://scarpesp.com/categoria-prodotto/donna/?count=36&paged="],
-    # ["Uomo", "https://scarpesp.com/categoria-prodotto/uomo/?count=36&paged="],
-    # ["Bambino", "https://scarpesp.com/categoria-prodotto/bambino/?count=36&paged="],
-    #["Accessori", "https://scarpesp.com/categoria-prodotto/accessori/?count=36&paged="],
+    ["Uomo", "https://scarpesp.com/categoria-prodotto/uomo/?count=36&paged="],
+    ["Bambino", "https://scarpesp.com/categoria-prodotto/bambino/?count=36&paged="],
+    ["Accessorio", "https://scarpesp.com/categoria-prodotto/accessori/?count=36&paged="],
 ]
 
 if __name__ == "__main__":
     start_time = time.time()
 
-    product_urls = list()
-
     html_filepath = "C:\\Users\\davide\\PycharmProjects\\ScrapShoes\\src\\"
 
+    # Per ogni categoria di scarpesp.com della lista
     for cat_url in categorie_urls:
+        # Estraggo da tutte le pagine della categoria l'elenco delle URL dei prodotti esistenti
         c = PageCategory(html_filepath, cat_url[1], cat_url[0])
         c.scrap_products_urls()
-        # c.print_product_urls()
-        product_urls.extend(c.products_urls)
         print("Sono stati estratti %d URL di Prodotti dalla categoria %s" % (len(c.products_urls), c.url))
 
         headers = ""
-        rows = list()
-        u = Shoe(html_filepath, product_urls[0], 0)
-        keys = u.get_csv().keys()
-
-        for i in range(0, len(product_urls)):
-            l = list()
+        product_objects = list()
+        for i in range(0, len(c.products_urls)):
             try:
-                p = Shoe(html_filepath, product_urls[i], i)
-                fields = p.get_csv()
-                keys = fields.keys()
-
-                headers_tmp = '|'.join(f'\"{x}\"' for x in keys)
-                if len(headers_tmp) != len(headers):
-                    print("PRIMA: %s" % headers)
-                    headers = '|'.join(f'\"{x}\"' for x in keys)
-                    print("DOPO: %s" % headers)
-
-                for key in fields.keys():
-                    l.append(fields[key])
-
-                rows.append('|'.join(f'\"{x}\"' for x in l))
-
-                # print("--------------------------------")
-                # print(p.title)
-                # print("--------------------------------")
-                # print(p.cod)
-                # print(p.categories)
-                # print(p.tags)
-                # print(p.price)
-                # print(p.main_image_url)
-                # print(p.images_urls)
-                # print(p.descrizione)
-                # print(p.additionals)
-
+                p = getattr(sys.modules[__name__], cat_url[0])(html_filepath, c.products_urls[i], i)
+                product_objects.append(p)
             except:
                 print(i)
                 print("IMPOSSIBILE ACQUISIRE DATI DA %s" % p.html_filename)
 
+        keys = dict()
+        for product in product_objects:
+            for key in product.get_csv().keys():
+                try:
+                    keys[key] = keys[key] + 1
+                except KeyError as e:
+                    keys[key] = 1
+
+        headers = keys.keys()
+        # for key in headers:
+        #     print("%s: %s" % (key, keys[key]))
+        #print(keys.keys())
+
+        rows = list()
+        for product in product_objects:
+            l = list()
+            for key in keys.keys():
+                try:
+                    l.append(product.get_csv()[key])
+                except KeyError as e:
+                    continue
+                except:
+                    raise
+            rows.append('|'.join(f'{x}' for x in l))
+
         try:
-            numpy.savetxt('%s%s.csv' % (html_filepath, cat_url[0]), rows,
-                          header=headers, delimiter="|", fmt='% s', encoding="utf-8")
+            filecsv = '%s%s.csv' % (html_filepath, cat_url[0])
+            numpy.savetxt(filecsv, rows,
+                          header='|'.join(x for x in headers), delimiter="|", fmt='% s', encoding="utf-8")
+            print("------ Scritto il file %s" % filecsv)
         except:
             raise
 
