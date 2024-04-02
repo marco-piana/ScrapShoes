@@ -463,6 +463,8 @@ class Bambino(PageProduct):
             raise
 
 
+
+
 # Lista di Shoe
 shoes = []
 

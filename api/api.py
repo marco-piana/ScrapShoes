@@ -2,10 +2,11 @@ import requests
 import json
 
 def getPageNumber():
-    headers = {}
-    apiURL = "https://scarpesp.com/categoria-prodotto/donna/page/5/?count=36"
-    r = requests.get(apiURL, headers=headers)
-    return r.text
+    #headers = {}
+    #apiURL = "https://scarpesp.com/categoria-prodotto/donna/page/5/?count=36"
+    #r = requests.get(apiURL, headers=headers)
+    #return r.text
+    return "{\"Accessori\":\"Accessori.csv\", \"Donna\":\"Donna.csv\"}"
 #
 # def zalandoAPI_MerchantIDs():
 #     token = zalandoAPI_RequestAccessToken()
@@ -35,9 +36,9 @@ def application(environ, start_response):
     apiRichiesta = str(environ['QUERY_STRING'])
     if request_method == 'GET':
     #if True:
-        # Distinguere in base al parametro la chiamata a ZalandoAPI
-        if apiRichiesta == "type=getPageNumber":
-            output = str(getPageNumber()).encode()
+        # Distinguere in base al parametro la chiamata la funzione
+        if apiRichiesta == "type=online":
+            output = "{\"Accessori\":\"Accessori.csv\", \"Donna\":\"Donna.csv\"}"
         else:
             output = "0x10: Comando GET non accettato."
 
