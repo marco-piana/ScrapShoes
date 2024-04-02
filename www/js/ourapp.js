@@ -1,4 +1,9 @@
 function handleFileSelect() {
+    var addColumn = function(innerHTML, tagType) {
+        var child = document.createElement(tagType);
+        child.innerHTML = innerHTML;
+        return child;
+    };
 
     var apiURL = "https://shoes.ourapp.it/api?type=online";
     var jqxhr = $.get( apiURL, function(data, textStatus, jqXHR) {
