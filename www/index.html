@@ -91,9 +91,26 @@
         table tr:first-child{
             font-weight: bold;
         }
+        .loader {
+              border: 16px solid #f3f3f3; /* Light grey */
+              border-top: 16px solid blue;
+              border-right: 16px solid green;
+              border-bottom: 16px solid red;
+              border-radius: 50%;
+              width: 120px;
+              height: 120px;
+              animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
     </style>
 </head>
 <body>
+
 <div class="wrap">
     <h1>ACQUISIZIONE DATI DA SITI ESTERNI</h1><br>
 </div>
@@ -105,6 +122,10 @@
             <li>
                 <input type="checkbox" id="scarpespcom" class="channelIDs" value="scarpespcom" name="ScarpeSPCOM" checked>
                 <label class="channelIDsLabel" for="scarpespcom">https://scarpesp.com/</label>
+
+                <div class="loader"></div>
+                <div id="resultInvio"></div>
+
             </li>
         </ul>
     </div>
