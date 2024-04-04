@@ -5,7 +5,10 @@ function handleFileSelect() {
         return child;
     };
 
-    var apiURL = "https://shoes.ourapp.it/api?type=online";
+    // Avvia il caricamento
+
+
+    var apiURL = "https://shoes.ourapp.it/api?type=scrap";
     var jqxhr = $.get( apiURL, function(data, textStatus, jqXHR) {
         // Arrivo della lista dei file in json
         var arr = data.split(",");
@@ -25,11 +28,16 @@ function handleFileSelect() {
         }
 
         $("#resultInvio").append(table);
+
+        // Termina il caricamento
+
         $("#resultInvio").show();
 
     })
     .fail(function() {
         console.log("Errore nella richiesta lista dei channel IDs.");
+
+        // Fine dello scrap con errore da segnalare
     })
 
 }

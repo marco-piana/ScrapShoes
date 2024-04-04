@@ -1,6 +1,8 @@
 import os
 import sys
 import uuid
+
+import bs4
 import numpy
 import requests
 from bs4 import BeautifulSoup
@@ -235,7 +237,12 @@ class Accessorio(PageProduct):
                 self.images_urls.append(images_url[i]["src"])
 
             # Descrizione
-            self.descrizione = soup.find("div", {"id": "tab-description"})
+            description = soup.find("div", {"id": "tab-description"})
+            description.attrs = {}
+            for tag in description.descendants:
+                if isinstance(tag, bs4.element.Tag):
+                    tag.attrs = {}
+            self.descrizione = description
 
             # Informazioni aggiuntive
             self.additionals = soup.find("table", {"class": "woocommerce-product-attributes"})
@@ -244,7 +251,7 @@ class Accessorio(PageProduct):
             for tr in self.additionals:
                 self.additional_dict[tr.th.text] = tr.td.p.text
         except:
-            raise
+            print("Problema nella lettura delle informazioni nel file %s: " % self.html_filename)
 
 
 class Donna(PageProduct):
@@ -275,6 +282,7 @@ class Donna(PageProduct):
         txt_content = txt_content.replace("\\\"", "\"")
         # TODO: capire come mai nell'estrazione sono errati i caratteri Unicode
         txt_content = txt_content.replace("\\u00aa", u"\u00aa")
+        txt_content = txt_content.replace("\\u00a0", u"\u00a0")
         txt_content = txt_content.replace("\\u1d2c", u"\u1d2c")
         txt_content = txt_content.replace("\\u00e0", u"\u00e0")
         txt_content = txt_content[1:-1]
@@ -307,7 +315,12 @@ class Donna(PageProduct):
                 self.images_urls.append(images_url[i]["src"])
 
             # Descrizione
-            self.descrizione = soup.find("div", {"id": "tab-description"})
+            description = soup.find("div", {"id": "tab-description"})
+            description.attrs = {}
+            for tag in description.descendants:
+                if isinstance(tag, bs4.element.Tag):
+                    tag.attrs = {}
+            self.descrizione = description
 
             # Informazioni aggiuntive
             self.additionals = soup.find("table", {"class": "woocommerce-product-attributes"})
@@ -379,7 +392,15 @@ class Uomo(PageProduct):
                 self.images_urls.append(images_url[i]["src"])
 
             # Descrizione
-            self.descrizione = soup.find("div", {"id": "tab-description"})
+            description = soup.find("div", {"id": "tab-description"})
+            try:
+                description.attrs = {}
+                for tag in description.descendants:
+                    if isinstance(tag, bs4.element.Tag):
+                        tag.attrs = {}
+                self.descrizione = description
+            except:
+                self.descrizione = ""
 
             # Informazioni aggiuntive
             self.additionals = soup.find("table", {"class": "woocommerce-product-attributes"})
@@ -419,6 +440,7 @@ class Bambino(PageProduct):
         txt_content = txt_content.replace("\\\"", "\"")
         # TODO: capire come mai nell'estrazione sono errati i caratteri Unicode
         txt_content = txt_content.replace("\\u00aa", u"\u00aa")
+        txt_content = txt_content.replace("\\u00a0", u"\u00a0")
         txt_content = txt_content.replace("\\u1d2c", u"\u1d2c")
         txt_content = txt_content.replace("\\u00e0", u"\u00e0")
         txt_content = txt_content[1:-1]
@@ -451,7 +473,12 @@ class Bambino(PageProduct):
                 self.images_urls.append(images_url[i]["src"])
 
             # Descrizione
-            self.descrizione = soup.find("div", {"id": "tab-description"})
+            description = soup.find("div", {"id": "tab-description"})
+            for tag in description.descendants:
+                if isinstance(tag, bs4.element.Tag):
+                    tag.attrs = {}
+            description.attrs = {}
+            self.descrizione = description
 
             # Informazioni aggiuntive
             self.additionals = soup.find("table", {"class": "woocommerce-product-attributes"})
@@ -470,10 +497,10 @@ shoes = []
 
 # Urls delle categorie da dove estrarre i singoli articoli
 categorie_urls = [
-    ["Donna", "https://scarpesp.com/categoria-prodotto/donna/?count=36&paged="],
-    ["Uomo", "https://scarpesp.com/categoria-prodotto/uomo/?count=36&paged="],
-    ["Bambino", "https://scarpesp.com/categoria-prodotto/bambino/?count=36&paged="],
-    ["Accessorio", "https://scarpesp.com/categoria-prodotto/accessori/?count=36&paged="],
+    [Donna, "https://scarpesp.com/categoria-prodotto/donna/?count=36&paged="],
+    [Uomo, "https://scarpesp.com/categoria-prodotto/uomo/?count=36&paged="],
+    [Bambino, "https://scarpesp.com/categoria-prodotto/bambino/?count=36&paged="],
+    [Accessorio, "https://scarpesp.com/categoria-prodotto/accessori/?count=36&paged="],
 ]
 
 if __name__ == "__main__":
@@ -484,19 +511,22 @@ if __name__ == "__main__":
     # Per ogni categoria di scarpesp.com della lista
     for cat_url in categorie_urls:
         # Estraggo da tutte le pagine della categoria l'elenco delle URL dei prodotti esistenti
-        c = PageCategory(html_filepath, cat_url[1], cat_url[0])
-        c.scrap_products_urls()
-        print("Sono stati estratti %d URL di Prodotti dalla categoria %s" % (len(c.products_urls), c.url))
+        category_instance = PageCategory(html_filepath, cat_url[1], cat_url[0].__name__)
+        category_instance.scrap_products_urls()
+        product_urls = category_instance.products_urls
+        print("Sono stati estratti %d URL di Prodotti dalla categoria %s" % (len(product_urls), category_instance.url))
 
         headers = ""
         product_objects = list()
-        for i in range(0, len(c.products_urls)):
+        for i in range(0, len(product_urls)):
             try:
-                p = getattr(sys.modules[__name__], cat_url[0])(html_filepath, c.products_urls[i], i)
-                product_objects.append(p)
+                product_instance = cat_url[0](html_filepath, product_urls[i], i)
+                product_objects.append(product_instance)
             except:
                 print(i)
-                print("IMPOSSIBILE ACQUISIRE DATI DA %s" % p.html_filename)
+                raise
+
+                # print("IMPOSSIBILE ACQUISIRE DATI DA %s" % p.html_filename)
 
         keys = dict()
         for product in product_objects:
@@ -524,7 +554,7 @@ if __name__ == "__main__":
             rows.append('|'.join(f'{x}' for x in l))
 
         try:
-            filecsv = '%s%s.csv' % (html_filepath, cat_url[0])
+            filecsv = '%s%s.csv' % (html_filepath, cat_url[0].__name__)
             numpy.savetxt(filecsv, rows,
                           header='|'.join(x for x in headers), delimiter="|", fmt='% s', encoding="utf-8")
             print("------ Scritto il file %s" % filecsv)
@@ -534,3 +564,5 @@ if __name__ == "__main__":
     end_time = time.time()
     elapsed_time = end_time - start_time
     print("Elapsed time: ", elapsed_time)
+
+    #TODO: al termine dello scrapping va restituito il nome di ogni file csv generato oppure il messaggio di errore
