@@ -548,7 +548,7 @@ def scrap():
                     continue
                 except:
                     raise
-            rows.append('|'.join(f'{x}' for x in l))
+            rows.append('|'.join('{x}' for x in l))
 
         try:
             filecsv = '%s%s.csv' % (html_filepath, cat_url[0].__name__)
