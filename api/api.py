@@ -8,7 +8,7 @@ def application(environ, start_response):
     if request_method == 'GET':
     #if True:
         # Distinguere in base al parametro la chiamata la funzione
-        if apiRichiesta == "type=online":
+        if apiRichiesta == "type=scrap":
             output = "\"Accessori.csv\", \"Donna.csv\"}"
         else:
             output = "0x10: Comando GET non accettato."
