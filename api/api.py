@@ -564,7 +564,7 @@ def scrap():
         try:
             filecsv = '%s%s.csv' % (html_filepath, cat_url[0].__name__)
             numpy.savetxt(filecsv, rows,
-                          header='|'.join(x for x in headers), delimiter="|", fmt='% s', encoding="utf-8")
+                          header='|'.join(x for x in headers), delimiter="|", fmt='% s')
             #print("------ Scritto il file %s" % filecsv)
         except:
             raise
