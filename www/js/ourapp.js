@@ -20,7 +20,7 @@ function handleFileSelect() {
 
         for (var i = 0; i < arr.length; i++){
             var tr = document.createElement('tr');
-            var row = arr[i];
+            var row = '<a href="https://shoes.ourapp.it/scrap/' + arr[i] + '"></a>';
             tr.appendChild(addColumn(row, "td"));
             table.appendChild(tr);
         }
@@ -28,7 +28,7 @@ function handleFileSelect() {
         $("#resultInvio").append(table);
 
         // Termina il caricamento
-        $("#loader").hide();
+        //$("#loader").hide();
 
         $("#resultInvio").show();
 
@@ -40,5 +40,5 @@ function handleFileSelect() {
     })
 
 }
-
+$("#loader").hide();
 document.getElementById('the_form').addEventListener('submit', handleFileSelect, false);
