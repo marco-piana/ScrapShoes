@@ -6,13 +6,11 @@ function handleFileSelect() {
     };
 
     // Avvia il caricamento
-
-
+    $("#loader").show();
     var apiURL = "https://shoes.ourapp.it/api?type=scrap";
     var jqxhr = $.get( apiURL, function(data, textStatus, jqXHR) {
         // Arrivo della lista dei file in json
         var arr = data.split(",");
-
 
         var table = document.createElement('table');
 
@@ -30,6 +28,7 @@ function handleFileSelect() {
         $("#resultInvio").append(table);
 
         // Termina il caricamento
+        $("#loader").hide();
 
         $("#resultInvio").show();
 

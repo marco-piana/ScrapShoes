@@ -91,15 +91,18 @@
         table tr:first-child{
             font-weight: bold;
         }
-        .loader {
+
+
+        #loader {
               border: 16px solid #f3f3f3; /* Light grey */
               border-top: 16px solid blue;
               border-right: 16px solid green;
               border-bottom: 16px solid red;
               border-radius: 50%;
-              width: 120px;
-              height: 120px;
+              width: 60px;
+              height: 60px;
               animation: spin 2s linear infinite;
+              display: none;
         }
 
         @keyframes spin {
@@ -123,7 +126,7 @@
                 <input type="checkbox" id="scarpespcom" class="channelIDs" value="scarpespcom" name="ScarpeSPCOM" checked>
                 <label class="channelIDsLabel" for="scarpespcom">https://scarpesp.com/</label>
 
-                <div class="loader"></div>
+                <div id="loader"></div>
                 <div id="resultInvio"></div>
 
             </li>

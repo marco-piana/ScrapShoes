@@ -1,7 +1,5 @@
 import os
-import sys
 import uuid
-
 import bs4
 import numpy
 import requests
@@ -490,8 +488,6 @@ class Bambino(PageProduct):
             raise
 
 
-
-
 # Lista di Shoe
 shoes = []
 
@@ -525,7 +521,6 @@ if __name__ == "__main__":
             except:
                 print(i)
                 raise
-
                 # print("IMPOSSIBILE ACQUISIRE DATI DA %s" % p.html_filename)
 
         keys = dict()
