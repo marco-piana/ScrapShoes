@@ -98,7 +98,18 @@ class PageCategory:
         for page in self.pages:
 
             # TODO: riconoscere meglio la parte di codice contente i dati da estrarre dei prodotti
-            txt_content = str(page.findAll("script", {'type': 'text/template'})[2].text)
+            obj = self.page.findAll("script", {'type': 'text/template'})
+
+            txt_content = ""
+            a = 0
+            for sc in obj:
+                try:
+                    if sc['id'] == None:
+                        pass
+                except:
+                    txt_content = obj[a].text
+                a += 1
+            #txt_content = str(page.findAll("script", {'type': 'text/template'})[2].text)
             txt_content = txt_content.replace("\\t\\t\\n", "")
             txt_content = txt_content.replace("\\n\\t\\n\\t", "")
             txt_content = txt_content.replace("\\n", "")
