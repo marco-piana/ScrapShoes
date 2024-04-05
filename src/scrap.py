@@ -36,19 +36,19 @@ class PageCategory:
         # Se entrambi sono diversi da zero vanno scrappate altre pagine altrimenti non faccio nulla
         if len_a != 0 and len_span != 0:
 
-            # Se len_span 1 e len_a è 2 allora prendo a da 0 (2 pagine)
+            # Se len_span 1 e len_a e 2 allora prendo a da 0 (2 pagine)
             if len_span == 1 and len_a == 2:
                 self.num_pages = int(a_num_pages[0].text)
 
-            # Se len_span 1 e len_a è 3 allora prendo a da 1 (3 pagine)
+            # Se len_span 1 e len_a e 3 allora prendo a da 1 (3 pagine)
             if len_span == 1 and len_a == 3:
                 self.num_pages = int(a_num_pages[1].text)
 
-            # Se len_span 1 e len_a è 4 allora prendo a da 2 (4 pagine)
+            # Se len_span 1 e len_a e 4 allora prendo a da 2 (4 pagine)
             if len_span == 1 and len_a == 4:
                 self.num_pages = int(a_num_pages[2].text)
 
-            # Se len_span 2 e len_a è 4 allora prendo a da 2 (5 o più pagine)
+            # Se len_span 2 e len_a e 4 allora prendo a da 2 (5 o piu pagine)
             if len_span == 2 and len_a == 4:
                 self.num_pages = int(a_num_pages[2].text)
 
@@ -97,7 +97,18 @@ class PageCategory:
         for page in self.pages:
 
             # TODO: riconoscere meglio la parte di codice contente i dati da estrarre dei prodotti
-            txt_content = str(page.findAll("script", {'type': 'text/template'})[2].text)
+            obj = page.findAll("script", {'type': 'text/template'})
+
+            txt_content = ""
+            a = 0
+            for sc in obj:
+                try:
+                    if sc['id'] == None:
+                        pass
+                except:
+                    txt_content = obj[a].text
+                a += 1
+            #txt_content = str(page.findAll("script", {'type': 'text/template'})[2].text)
             txt_content = txt_content.replace("\\t\\t\\n", "")
             txt_content = txt_content.replace("\\n\\t\\n\\t", "")
             txt_content = txt_content.replace("\\n", "")
@@ -163,11 +174,11 @@ class PageProduct:
         fields = dict()
         fields["Titolo"] = self.title.strip()
         fields["COD"] = self.cod.strip()
-        fields["Categorie"] = ','.join(f'\"{x}\"' for x in self.categories)
-        fields["Tags"] = ','.join(f'\"{x}\"' for x in self.tags)
+        fields["Categorie"] = ','.join('\"{x}\"' for x in self.categories)
+        fields["Tags"] = ','.join('\"{x}\"' for x in self.tags)
         fields["Prezzo"] = self.price.strip()
         fields["Immagine Principale"] = self.main_image_url.strip()
-        fields["Immagini Secondarie"] = ','.join(f'\"{x}\"' for x in self.images_urls)
+        fields["Immagini Secondarie"] = ','.join('\"{x}\"' for x in self.images_urls)
         fields["Descrizione HTML"] = self.descrizione
 
         for key in self.additional_dict.keys():
@@ -488,18 +499,19 @@ class Bambino(PageProduct):
             raise
 
 
+
 # Lista di Shoe
 shoes = []
 
-# Urls delle categorie da dove estrarre i singoli articoli
-categorie_urls = [
-    [Donna, "https://scarpesp.com/categoria-prodotto/donna/?count=36&paged="],
-    [Uomo, "https://scarpesp.com/categoria-prodotto/uomo/?count=36&paged="],
-    [Bambino, "https://scarpesp.com/categoria-prodotto/bambino/?count=36&paged="],
-    [Accessorio, "https://scarpesp.com/categoria-prodotto/accessori/?count=36&paged="],
-]
-
 if __name__ == "__main__":
+    # Urls delle categorie da dove estrarre i singoli articoli
+    categorie_urls = [
+        [Donna, "https://scarpesp.com/categoria-prodotto/donna/?count=36&paged="],
+        [Uomo, "https://scarpesp.com/categoria-prodotto/uomo/?count=36&paged="],
+        [Bambino, "https://scarpesp.com/categoria-prodotto/bambino/?count=36&paged="],
+        [Accessorio, "https://scarpesp.com/categoria-prodotto/accessori/?count=36&paged="],
+    ]
+
     start_time = time.time()
     scrapped_files = []
     html_filepath = "C:\\Users\\davide\\PycharmProjects\\ScrapShoes\\src\\"
@@ -511,7 +523,7 @@ if __name__ == "__main__":
         category_instance = PageCategory(html_filepath, cat_url[1], cat_url[0].__name__)
         category_instance.scrap_products_urls()
         product_urls = category_instance.products_urls
-        print("Sono stati estratti %d URL di Prodotti dalla categoria %s" % (len(product_urls), category_instance.url))
+        # print("Sono stati estratti %d URL di Prodotti dalla categoria %s" % (len(product_urls), category_instance.url))
 
         headers = ""
         product_objects = list()
@@ -520,7 +532,7 @@ if __name__ == "__main__":
                 product_instance = cat_url[0](html_filepath, product_urls[i], i)
                 product_objects.append(product_instance)
             except:
-                print(i)
+                # print(i)
                 raise
                 # print("IMPOSSIBILE ACQUISIRE DATI DA %s" % p.html_filename)
 
@@ -535,7 +547,7 @@ if __name__ == "__main__":
         headers = keys.keys()
         # for key in headers:
         #     print("%s: %s" % (key, keys[key]))
-        #print(keys.keys())
+        # print(keys.keys())
 
         rows = list()
         for product in product_objects:
@@ -547,18 +559,17 @@ if __name__ == "__main__":
                     continue
                 except:
                     raise
-            rows.append('|'.join(f'{x}' for x in l))
+            rows.append('|'.join('{x}' for x in l))
 
         try:
             filecsv = '%s%s.csv' % (html_filepath, cat_url[0].__name__)
             numpy.savetxt(filecsv, rows,
-                          header='|'.join(x for x in headers), delimiter="|", fmt='% s', encoding="utf-8")
-            print("------ Scritto il file %s" % filecsv)
+                          header='|'.join(x for x in headers), delimiter="|", fmt='% s')
+            # print("------ Scritto il file %s" % filecsv)
         except:
             raise
 
         scrapped_files.append('%s.csv' % cat_url[0].__name__)
-    print(scrapped_files)
     end_time = time.time()
     elapsed_time = end_time - start_time
     print("Elapsed time: ", elapsed_time)
