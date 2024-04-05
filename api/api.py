@@ -98,7 +98,7 @@ class PageCategory:
         for page in self.pages:
 
             # TODO: riconoscere meglio la parte di codice contente i dati da estrarre dei prodotti
-            obj = self.page.findAll("script", {'type': 'text/template'})
+            obj = page.findAll("script", {'type': 'text/template'})
 
             txt_content = ""
             a = 0
