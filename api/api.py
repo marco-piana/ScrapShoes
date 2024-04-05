@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 import uuid
 import bs4
@@ -37,19 +36,19 @@ class PageCategory:
         # Se entrambi sono diversi da zero vanno scrappate altre pagine altrimenti non faccio nulla
         if len_a != 0 and len_span != 0:
 
-            # Se len_span 1 e len_a è 2 allora prendo a da 0 (2 pagine)
+            # Se len_span 1 e len_a e 2 allora prendo a da 0 (2 pagine)
             if len_span == 1 and len_a == 2:
                 self.num_pages = int(a_num_pages[0].text)
 
-            # Se len_span 1 e len_a è 3 allora prendo a da 1 (3 pagine)
+            # Se len_span 1 e len_a e 3 allora prendo a da 1 (3 pagine)
             if len_span == 1 and len_a == 3:
                 self.num_pages = int(a_num_pages[1].text)
 
-            # Se len_span 1 e len_a è 4 allora prendo a da 2 (4 pagine)
+            # Se len_span 1 e len_a e 4 allora prendo a da 2 (4 pagine)
             if len_span == 1 and len_a == 4:
                 self.num_pages = int(a_num_pages[2].text)
 
-            # Se len_span 2 e len_a è 4 allora prendo a da 2 (5 o più pagine)
+            # Se len_span 2 e len_a e 4 allora prendo a da 2 (5 o più pagine)
             if len_span == 2 and len_a == 4:
                 self.num_pages = int(a_num_pages[2].text)
 
@@ -492,15 +491,15 @@ class Bambino(PageProduct):
 # Lista di Shoe
 shoes = []
 
-# Urls delle categorie da dove estrarre i singoli articoli
-categorie_urls = [
-    [Donna, "https://scarpesp.com/categoria-prodotto/donna/?count=36&paged="],
-    [Uomo, "https://scarpesp.com/categoria-prodotto/uomo/?count=36&paged="],
-    [Bambino, "https://scarpesp.com/categoria-prodotto/bambino/?count=36&paged="],
-    [Accessorio, "https://scarpesp.com/categoria-prodotto/accessori/?count=36&paged="],
-]
-
 def scrap():
+    # Urls delle categorie da dove estrarre i singoli articoli
+    categorie_urls = [
+        [Donna, "https://scarpesp.com/categoria-prodotto/donna/?count=36&paged="],
+        [Uomo, "https://scarpesp.com/categoria-prodotto/uomo/?count=36&paged="],
+        [Bambino, "https://scarpesp.com/categoria-prodotto/bambino/?count=36&paged="],
+        [Accessorio, "https://scarpesp.com/categoria-prodotto/accessori/?count=36&paged="],
+    ]
+
     start_time = time.time()
     scrapped_files = []
     # html_filepath = "C:\\Users\\davide\\PycharmProjects\\ScrapShoes\\src\\"
