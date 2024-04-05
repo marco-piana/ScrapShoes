@@ -163,11 +163,11 @@ class PageProduct:
         fields = dict()
         fields["Titolo"] = self.title.strip()
         fields["COD"] = self.cod.strip()
-        fields["Categorie"] = ','.join(f'\"{x}\"' for x in self.categories)
-        fields["Tags"] = ','.join(f'\"{x}\"' for x in self.tags)
+        fields["Categorie"] = ','.join('\"{x}\"' for x in self.categories)
+        fields["Tags"] = ','.join('\"{x}\"' for x in self.tags)
         fields["Prezzo"] = self.price.strip()
         fields["Immagine Principale"] = self.main_image_url.strip()
-        fields["Immagini Secondarie"] = ','.join(f'\"{x}\"' for x in self.images_urls)
+        fields["Immagini Secondarie"] = ','.join('\"{x}\"' for x in self.images_urls)
         fields["Descrizione HTML"] = self.descrizione
 
         for key in self.additional_dict.keys():
