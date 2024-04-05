@@ -501,8 +501,9 @@ categorie_urls = [
 
 if __name__ == "__main__":
     start_time = time.time()
-
-    html_filepath = "C:\\Users\\davide\\PycharmProjects\\ScrapShoes\\src\\"
+    scrapped_files = []
+    #html_filepath = "C:\\Users\\davide\\PycharmProjects\\ScrapShoes\\src\\"
+    html_filepath = "/home/shoes/public_html/www/scrap/"
 
     # Per ogni categoria di scarpesp.com della lista
     for cat_url in categorie_urls:
@@ -556,6 +557,7 @@ if __name__ == "__main__":
         except:
             raise
 
+        scrapped_files.append('%s.csv' % cat_url[0].__name__)
     end_time = time.time()
     elapsed_time = end_time - start_time
     print("Elapsed time: ", elapsed_time)
