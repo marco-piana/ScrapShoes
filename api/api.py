@@ -48,7 +48,7 @@ class PageCategory:
             if len_span == 1 and len_a == 4:
                 self.num_pages = int(a_num_pages[2].text)
 
-            # Se len_span 2 e len_a e 4 allora prendo a da 2 (5 o più pagine)
+            # Se len_span 2 e len_a e 4 allora prendo a da 2 (5 o piu pagine)
             if len_span == 2 and len_a == 4:
                 self.num_pages = int(a_num_pages[2].text)
 
