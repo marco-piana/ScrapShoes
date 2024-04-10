@@ -22,7 +22,7 @@ def str_normalize(my_string):
     my_string = my_string.replace("\\\"", "\"")
     my_string = my_string.replace("\\u00aa", u"\u00aa")
     my_string = my_string.replace("\\u00a0", u"\u00a0")
-    my_string = my_string.replace("\\u1d2c", "MINCHIA")
+    my_string = my_string.replace("\\u1d2c", u"\u1d2c")
     my_string = my_string.replace("\\u00e0", u"\u00e0")
 
     return my_string[1:-1]
@@ -233,65 +233,6 @@ class Accessorio(PageProduct):
             # Prezzo
             self.price = soup.find("span", {"class": "woocommerce-Price-amount"}).bdi.text
 
-            # Immagini
-            self.main_image_url = ""
-            images_url = soup.find_all("img", {"loading": "lazy"})
-            for i in range(0, len(images_url)):
-                self.images_urls.append(images_url[i]["src"])
-
-            # Descrizione
-            description = soup.find("div", {"id": "tab-description"})
-
-            description.attrs = {}
-            for tag in description.descendants:
-                if isinstance(tag, bs4.element.Tag):
-                    tag.attrs = {}
-
-            self.descrizione = description.prettify()
-
-            # Informazioni aggiuntive
-            self.additionals = soup.find("table", {"class": "woocommerce-product-attributes"})
-            self.additionals = self.additionals.find_all("tr")
-
-            for tr in self.additionals:
-                self.additional_dict[tr.th.text] = tr.td.p.text
-        except:
-            print("Problema nella lettura delle informazioni nel file %s: " % self.html_filename)
-
-    def scrap_product2(self):
-
-        # TODO: riconoscere meglio la parte di codice contente i dati da estrarre dei prodotti
-        obj = self.page.findAll("script", {'type': 'text/template'})
-
-        txt_content = ""
-        for i in range(0, len(obj)):
-            a = len(obj[i].string)
-            if len(obj[i].string) > 10000:
-                txt_content = obj[i].string
-                break
-
-        txt_content = str_normalize(txt_content)
-
-        soup = BeautifulSoup(txt_content, "html.parser")
-        try:
-            # Titolo
-            self.title = soup.find_all("h2", {"class": "product_title"})[0].text
-
-            # Codice
-            self.cod = soup.find_all("span", {"class": "sku"})[0].text
-
-            # Categorie
-            categorie = soup.find("span", {"class": "posted_in"}).findChildren("a", recursive=False)
-            for categoria in categorie:
-                self.categories.append(categoria.text)
-
-            # Tags
-            tags = soup.find("span", {"class": "tagged_as"}).findChildren("a", recursive=False)
-            for tag in tags:
-                self.tags.append(tag.text)
-
-            # Prezzo
-            self.price = soup.find("span", {"class": "woocommerce-Price-amount"}).bdi.text
 
             # Immagini
             self.main_image_url = soup.find("img", {"class": "woocommerce-main-image"})["src"]
@@ -513,9 +454,9 @@ shoes = []
 if __name__ == "__main__":
     # Urls delle categorie da dove estrarre i singoli articoli
     categorie_urls = [
-        # [Donna, "https://scarpesp.com/categoria-prodotto/donna/?count=36&paged="],
-        # [Uomo, "https://scarpesp.com/categoria-prodotto/uomo/?count=36&paged="],
-        # [Bambino, "https://scarpesp.com/categoria-prodotto/bambino/?count=36&paged="],
+        [Donna, "https://scarpesp.com/categoria-prodotto/donna/?count=36&paged="],
+        [Uomo, "https://scarpesp.com/categoria-prodotto/uomo/?count=36&paged="],
+        [Bambino, "https://scarpesp.com/categoria-prodotto/bambino/?count=36&paged="],
         [Accessorio, "https://scarpesp.com/categoria-prodotto/accessori/?count=36&paged="],
     ]
 
@@ -562,7 +503,10 @@ if __name__ == "__main__":
             fieldcsv = product.get_csv()
             for key in headers:
                 try:
-                    l.append(fieldcsv[key])
+                    if key != 'Descrizione HTML':
+                        l.append(fieldcsv[key])
+                    else:
+                        l.append("")
                 except KeyError as e:
                     continue
                 except:
@@ -572,7 +516,7 @@ if __name__ == "__main__":
             #     print("%s - (%s) %s" % (type(field), key, field))
             row = '|'.join([field for field in l if type(field)])
             rows.append(row)
-            if 'MINCHIA' in row:
+            if 'u1d2c' in row:
                 print(i)
                 print("trovata")
 
@@ -580,9 +524,9 @@ if __name__ == "__main__":
         try:
             filecsv = '%s%s.csv' % (html_filepath, cat_url[0].__name__)
             numpy.savetxt(filecsv, rows,
-                          header='|'.join(x for x in headers), delimiter="|", fmt='% s')
+                          header='|'.join(x for x in headers), encoding="windows-1252", delimiter="|", fmt='%s')
             print("------ Scritto il file %s" % filecsv)
-        except:
+        except Exception as e:
             raise
 
         scrapped_files.append('%s.csv' % cat_url[0].__name__)
