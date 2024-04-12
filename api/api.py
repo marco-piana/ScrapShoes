@@ -102,7 +102,7 @@ class PageCategory:
         return self.scrap_category_page(self.url)
 
     def save_categorypage(self, html_filename, html_cat_text):
-        f = open("%s%s" % (self.filespath, html_filename), "w")
+        f = open("%s%s" % (self.filespath, html_filename), "w", encoding="windows-1252")
         f.write(html_cat_text)
         f.close()
 
