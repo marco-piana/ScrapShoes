@@ -1,28 +1,31 @@
-# -*- coding: utf-8 -*-
+import cStringIO
 import os
+import urllib
 import uuid
 import bs4
 import numpy
-import requests
 from bs4 import BeautifulSoup
 import io
 import time
-import logging
 
-LOGLVL_INFO = logging.INFO
-LOGLVL_DEBUG = logging.DEBUG
-LOGLVL_ERROR = logging.ERROR
-LOGLVL_WARNING = logging.WARNING
-LOGLVL_DEFAULT = LOGLVL_INFO
 
-log = logging.getLogger()
-log.setLevel(LOGLVL_DEFAULT)
+def str_normalize(my_string):
+    my_string = my_string.replace("\\t\\t\\t\\t", "")
+    my_string = my_string.replace("\\n\\t\\n\\t", "")
+    my_string = my_string.replace("\\t\\t\\n", "")
+    my_string = my_string.replace("\\n\\t", "")
+    my_string = my_string.replace("\\t\\t", "")
+    my_string = my_string.replace("\\n", "")
+    my_string = my_string.replace("\\t", "")
+    my_string = my_string.replace("\\/", "/")
+    my_string = my_string.replace("\\\\/", "/")
+    my_string = my_string.replace("\\\"", "\"")
+    my_string = my_string.replace("\\u00aa", u"\u00aa")
+    my_string = my_string.replace("\\u00a0", u"\u00a0")
+    my_string = my_string.replace("\\u1d2c", u"\u1d2c")
+    my_string = my_string.replace("\\u00e0", u"\u00e0")
 
-file = "/home/shoes/logs/apishoes.log"
-f_format = logging.Formatter('[%(asctime)s]-[%(levelname)s]-%(message)s')
-hdlr = logging.FileHandler(file)
-hdlr.setFormatter(f_format)
-log.addHandler(hdlr)
+    return my_string[1:-1]
 
 
 class PageCategory:
@@ -80,16 +83,17 @@ class PageCategory:
     def scrap_or_load(self, html_filename, scrap_url, page=1):
         html_filepath = "%s%s" % (self.filespath, html_filename)
         if os.path.isfile(html_filepath):
-            catfile = io.open(html_filepath, mode="r")
+            catfile = io.open(html_filepath, mode="r", encoding="windows-1252")
             return catfile.read()
         else:
-            html_text = self.scrap_category_page(scrap_url, page)
-            self.save_categorypage(html_filename, html_text)
-            return html_text
+            str_io_response = self.scrap_category_page(scrap_url, page)
+            self.save_categorypage(html_filename, str_io_response)
+            return str_io_response.getvalue()
 
     # Restituisce il testo della pagina recuperata da internet
     def scrap_page(self, url):
-        return requests.get(url).text
+        str_io_response = cStringIO.StringIO(urllib.urlopen(url).read())
+        return str_io_response
 
     # Ritorna il testo HTML di una pagina scrappata di tipo categoria
     def scrap_category_page(self, seed_url, page_number=1):
@@ -101,9 +105,9 @@ class PageCategory:
         ### Scarico la prima pagina di categoria
         return self.scrap_category_page(self.url)
 
-    def save_categorypage(self, html_filename, html_cat_text):
-        f = open("%s%s" % (self.filespath, html_filename), "w", encoding="windows-1252")
-        f.write(html_cat_text)
+    def save_categorypage(self, html_filename, str_io_response):
+        f = open("%s%s" % (self.filespath, html_filename), "w")
+        f.write(str_io_response.getvalue())
         f.close()
 
     def print_product_urls(self):
@@ -114,26 +118,15 @@ class PageCategory:
         for page in self.pages:
 
             # TODO: riconoscere meglio la parte di codice contente i dati da estrarre dei prodotti
-            obj = page.findAll("script", {'type': 'text/template'})
+            obj = page.find_all("script", {'type': 'text/template'})
 
-            txt_content = ""
-            a = 0
-            for sc in obj:
-                try:
-                    if sc['id'] == None:
-                        pass
-                except:
-                    txt_content = obj[a].text
-                a += 1
+            for i in range(0, len(obj)):
+                if len(obj[i].string) > 50000:
+                    txt_content = obj[i].string
+                    break
+
             #txt_content = str(page.findAll("script", {'type': 'text/template'})[2].text)
-            txt_content = txt_content.replace("\\t\\t\\n", "")
-            txt_content = txt_content.replace("\\n\\t\\n\\t", "")
-            txt_content = txt_content.replace("\\n", "")
-            txt_content = txt_content.replace("\\t\\t", "")
-            txt_content = txt_content.replace("\\t", "")
-            txt_content = txt_content.replace("\\/", "/")
-            txt_content = txt_content.replace("\\\\/", "/")
-            txt_content = txt_content.replace("\\\"", "\"")
+            txt_content = str_normalize(txt_content)
 
             soup = BeautifulSoup(txt_content, "html.parser")
             products_html = soup.find_all("li", "product-col")
@@ -174,13 +167,14 @@ class PageProduct:
             catfile = io.open(html_filepath, mode="r", encoding="UTF-8")
             return catfile.read()
         else:
-            html_text = requests.get(url).text
-            self.save_page(html_filename, html_text)
-            return html_text
+            #html_text = requests.get(url).text
+            str_io_response = cStringIO.StringIO(urllib.urlopen(url).read())
+            self.save_page(html_filename, str_io_response)
+            return str_io_response.getvalue()
 
-    def save_page(self, html_filename, html_text):
-        f = open("%s%s" % (self.filepath, html_filename), "w", encoding="UTF-8")
-        f.write(html_text)
+    def save_page(self, html_filename, str_io_response):
+        f = open("%s%s" % (self.filepath, html_filename), "w")
+        f.write(str_io_response.getvalue())
         f.close()
 
     def scrap_product(self):
@@ -191,12 +185,11 @@ class PageProduct:
         fields = dict()
         fields["Titolo"] = self.title.strip()
         fields["COD"] = self.cod.strip()
-        fields["Categorie"] = ','.join('\"{x}\"' for x in self.categories)
-        fields["Tags"] = ','.join('\"{x}\"' for x in self.tags)
+        fields["Categorie"] = ','.join([categoria for categoria in self.categories])
+        fields["Tags"] = ','.join([tag for tag in self.tags])
         fields["Prezzo"] = self.price.strip()
-        fields["Immagine Principale"] = self.main_image_url.strip()
-        fields["Immagini Secondarie"] = ','.join('\"{x}\"' for x in self.images_urls)
-        fields["Descrizione HTML"] = self.descrizione
+        fields["Immagini"] = ','.join([tag for tag in self.images_urls])
+        fields["Descrizione HTML"] = self.descrizione.replace("\n", "")
 
         for key in self.additional_dict.keys():
             fields[key] = self.additional_dict[key].strip()
@@ -208,32 +201,16 @@ class Accessorio(PageProduct):
     filepart = "accessorio"
 
     def scrap_product(self):
-
         # TODO: riconoscere meglio la parte di codice contente i dati da estrarre dei prodotti
         obj = self.page.findAll("script", {'type': 'text/template'})
 
         txt_content = ""
-        a = 0
-        for sc in obj:
-            try:
-                if sc['id'] == None:
-                    pass
-            except:
-                txt_content = obj[a].text
-            a += 1
+        for i in range(0, len(obj)):
+            if len(obj[i].string) > 10000:
+                txt_content = obj[i].string
+                break
 
-        txt_content = txt_content.replace("\\n\\t", "")
-        txt_content = txt_content.replace("\\t\\t\\t\\t", "")
-        txt_content = txt_content.replace("\\t\\t", "")
-        txt_content = txt_content.replace("\\t", "")
-        txt_content = txt_content.replace("\\n", "")
-        txt_content = txt_content.replace("\\/", "/")
-        txt_content = txt_content.replace("\\\"", "\"")
-        # TODO: capire come mai nell'estrazione sono errati i caratteri Unicode
-        txt_content = txt_content.replace("\\u00aa", u"\u00aa")
-        txt_content = txt_content.replace("\\u1d2c", u"\u1d2c")
-        txt_content = txt_content.replace("\\u00e0", u"\u00e0")
-        txt_content = txt_content[1:-1]
+        txt_content = str_normalize(txt_content)
 
         soup = BeautifulSoup(txt_content, "html.parser")
         try:
@@ -256,6 +233,7 @@ class Accessorio(PageProduct):
             # Prezzo
             self.price = soup.find("span", {"class": "woocommerce-Price-amount"}).bdi.text
 
+
             # Immagini
             self.main_image_url = soup.find("img", {"class": "woocommerce-main-image"})["src"]
             images_url = soup.find_all("img", {"class": "img-responsive"})
@@ -264,11 +242,13 @@ class Accessorio(PageProduct):
 
             # Descrizione
             description = soup.find("div", {"id": "tab-description"})
+
             description.attrs = {}
             for tag in description.descendants:
                 if isinstance(tag, bs4.element.Tag):
                     tag.attrs = {}
-            self.descrizione = description
+
+            self.descrizione = description.prettify()
 
             # Informazioni aggiuntive
             self.additionals = soup.find("table", {"class": "woocommerce-product-attributes"})
@@ -277,7 +257,7 @@ class Accessorio(PageProduct):
             for tr in self.additionals:
                 self.additional_dict[tr.th.text] = tr.td.p.text
         except:
-            log.error("Problema nella lettura delle informazioni nel file %s: " % self.html_filename)
+            print("Problema nella lettura delle informazioni nel file %s: " % self.html_filename)
 
 
 class Donna(PageProduct):
@@ -288,30 +268,12 @@ class Donna(PageProduct):
         # TODO: riconoscere meglio la parte di codice contente i dati da estrarre dei prodotti
         obj = self.page.findAll("script", {'type': 'text/template'})
 
-        txt_content = ""
-        a = 0
-        for sc in obj:
-            try:
-                if sc['id'] == None:
-                    pass
-            except:
-                txt_content = obj[a].text
-            a += 1
+        for i in range(0, len(obj)):
+            if len(obj[i].string) > 50000:
+                txt_content = obj[i].string
+                break
 
-        txt_content = txt_content.replace("\\n\\t", "")
-        txt_content = txt_content.replace("\\t\\t\\t\\t", "")
-        txt_content = txt_content.replace("\\t\\t", "")
-        txt_content = txt_content.replace("\\t", "")
-        txt_content = txt_content.replace("\\n", "")
-        txt_content = txt_content.replace("\\/", "/")
-        txt_content = txt_content.replace("\\\\/", "/")
-        txt_content = txt_content.replace("\\\"", "\"")
-        # TODO: capire come mai nell'estrazione sono errati i caratteri Unicode
-        txt_content = txt_content.replace("\\u00aa", u"\u00aa")
-        txt_content = txt_content.replace("\\u00a0", u"\u00a0")
-        txt_content = txt_content.replace("\\u1d2c", u"\u1d2c")
-        txt_content = txt_content.replace("\\u00e0", u"\u00e0")
-        txt_content = txt_content[1:-1]
+        txt_content = str_normalize(txt_content)
 
         soup = BeautifulSoup(txt_content, "html.parser")
         try:
@@ -342,11 +304,13 @@ class Donna(PageProduct):
 
             # Descrizione
             description = soup.find("div", {"id": "tab-description"})
+
             description.attrs = {}
             for tag in description.descendants:
                 if isinstance(tag, bs4.element.Tag):
                     tag.attrs = {}
-            self.descrizione = description
+
+            self.descrizione = description.prettify()
 
             # Informazioni aggiuntive
             self.additionals = soup.find("table", {"class": "woocommerce-product-attributes"})
@@ -355,7 +319,7 @@ class Donna(PageProduct):
             for tr in self.additionals:
                 self.additional_dict[tr.th.text] = tr.td.p.text
         except:
-            raise
+            print("Problema nella lettura delle informazioni nel file %s: " % self.html_filename)
 
 
 class Uomo(PageProduct):
@@ -367,28 +331,12 @@ class Uomo(PageProduct):
         obj = self.page.findAll("script", {'type': 'text/template'})
 
         txt_content = ""
-        a = 0
-        for sc in obj:
-            try:
-                if sc['id'] == None:
-                    pass
-            except:
-                txt_content = obj[a].text
-            a += 1
+        for i in range(0, len(obj)):
+            if len(obj[i].string) > 50000:
+                txt_content = obj[i].string
+                break
 
-        txt_content = txt_content.replace("\\n\\t", "")
-        txt_content = txt_content.replace("\\t\\t\\t\\t", "")
-        txt_content = txt_content.replace("\\t\\t", "")
-        txt_content = txt_content.replace("\\t", "")
-        txt_content = txt_content.replace("\\n", "")
-        txt_content = txt_content.replace("\\/", "/")
-        txt_content = txt_content.replace("\\\\/", "/")
-        txt_content = txt_content.replace("\\\"", "\"")
-        # TODO: capire come mai nell'estrazione sono errati i caratteri Unicode
-        txt_content = txt_content.replace("\\u00aa", u"\u00aa")
-        txt_content = txt_content.replace("\\u1d2c", u"\u1d2c")
-        txt_content = txt_content.replace("\\u00e0", u"\u00e0")
-        txt_content = txt_content[1:-1]
+        txt_content = str_normalize(txt_content)
 
         soup = BeautifulSoup(txt_content, "html.parser")
         try:
@@ -419,14 +367,13 @@ class Uomo(PageProduct):
 
             # Descrizione
             description = soup.find("div", {"id": "tab-description"})
-            try:
-                description.attrs = {}
-                for tag in description.descendants:
-                    if isinstance(tag, bs4.element.Tag):
-                        tag.attrs = {}
-                self.descrizione = description
-            except:
-                self.descrizione = ""
+
+            description.attrs = {}
+            for tag in description.descendants:
+                if isinstance(tag, bs4.element.Tag):
+                    tag.attrs = {}
+
+            self.descrizione = description.prettify()
 
             # Informazioni aggiuntive
             self.additionals = soup.find("table", {"class": "woocommerce-product-attributes"})
@@ -435,7 +382,7 @@ class Uomo(PageProduct):
             for tr in self.additionals:
                 self.additional_dict[tr.th.text] = tr.td.p.text
         except:
-            raise
+            print("Problema nella lettura delle informazioni nel file %s: " % self.html_filename)
 
 
 class Bambino(PageProduct):
@@ -447,29 +394,12 @@ class Bambino(PageProduct):
         obj = self.page.findAll("script", {'type': 'text/template'})
 
         txt_content = ""
-        a = 0
-        for sc in obj:
-            try:
-                if sc['id'] == None:
-                    pass
-            except:
-                txt_content = obj[a].text
-            a += 1
+        for i in range(0, len(obj)):
+            if len(obj[i].string) > 50000:
+                txt_content = obj[i].string
+                break
 
-        txt_content = txt_content.replace("\\n\\t", "")
-        txt_content = txt_content.replace("\\t\\t\\t\\t", "")
-        txt_content = txt_content.replace("\\t\\t", "")
-        txt_content = txt_content.replace("\\t", "")
-        txt_content = txt_content.replace("\\n", "")
-        txt_content = txt_content.replace("\\/", "/")
-        txt_content = txt_content.replace("\\\\/", "/")
-        txt_content = txt_content.replace("\\\"", "\"")
-        # TODO: capire come mai nell'estrazione sono errati i caratteri Unicode
-        txt_content = txt_content.replace("\\u00aa", u"\u00aa")
-        txt_content = txt_content.replace("\\u00a0", u"\u00a0")
-        txt_content = txt_content.replace("\\u1d2c", u"\u1d2c")
-        txt_content = txt_content.replace("\\u00e0", u"\u00e0")
-        txt_content = txt_content[1:-1]
+        txt_content = str_normalize(txt_content)
 
         soup = BeautifulSoup(txt_content, "html.parser")
         try:
@@ -500,11 +430,13 @@ class Bambino(PageProduct):
 
             # Descrizione
             description = soup.find("div", {"id": "tab-description"})
+
+            description.attrs = {}
             for tag in description.descendants:
                 if isinstance(tag, bs4.element.Tag):
                     tag.attrs = {}
-            description.attrs = {}
-            self.descrizione = description
+
+            self.descrizione = description.prettify()
 
             # Informazioni aggiuntive
             self.additionals = soup.find("table", {"class": "woocommerce-product-attributes"})
@@ -513,7 +445,7 @@ class Bambino(PageProduct):
             for tr in self.additionals:
                 self.additional_dict[tr.th.text] = tr.td.p.text
         except:
-            raise
+            print("Problema nella lettura delle informazioni nel file %s: " % self.html_filename)
 
 
 # Lista di Shoe
@@ -580,8 +512,7 @@ def scrap():
 
         try:
             filecsv = '%s%s.csv' % (html_filepath, cat_url[0].__name__)
-            numpy.savetxt(filecsv, rows,
-                          header='|'.join(x for x in headers), encoding="windows-1252", delimiter="|", fmt='%s')
+            numpy.savetxt(filecsv, rows,  header='|'.join(x for x in headers), encoding="windows-1252", delimiter="|", fmt='%s')
             log.info("E' stato scritto il file %s" % filecsv)
         except Exception as e:
             raise

@@ -83,7 +83,7 @@ class PageCategory:
     def scrap_or_load(self, html_filename, scrap_url, page=1):
         html_filepath = "%s%s" % (self.filespath, html_filename)
         if os.path.isfile(html_filepath):
-            catfile = io.open(html_filepath, mode="r", encoding="UTF-8")
+            catfile = io.open(html_filepath, mode="r", encoding="windows-1252")
             return catfile.read()
         else:
             str_io_response = self.scrap_category_page(scrap_url, page)
@@ -462,8 +462,8 @@ if __name__ == "__main__":
 
     start_time = time.time()
     scrapped_files = []
-    html_filepath = "C:\\Users\\davide\\PycharmProjects\\ScrapShoes\\src\\"
-    #html_filepath = "/home/shoes/public_html/www/scrap/"
+    #html_filepath = "C:\\Users\\davide\\PycharmProjects\\ScrapShoes\\src\\"
+    html_filepath = "/home/shoes/public_html/www/scrap/"
 
     # Per ogni categoria di scarpesp.com della lista
     for cat_url in categorie_urls:
