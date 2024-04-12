@@ -7,7 +7,22 @@ import numpy
 from bs4 import BeautifulSoup
 import io
 import time
+import logging
 
+LOGLVL_INFO = logging.INFO
+LOGLVL_DEBUG = logging.DEBUG
+LOGLVL_ERROR = logging.ERROR
+LOGLVL_WARNING = logging.WARNING
+LOGLVL_DEFAULT = LOGLVL_INFO
+
+log = logging.getLogger()
+log.setLevel(LOGLVL_DEFAULT)
+
+file = "/home/shoes/logs/apishoes.log"
+f_format = logging.Formatter('[%(asctime)s]-[%(levelname)s]-%(message)s')
+hdlr = logging.FileHandler(file)
+hdlr.setFormatter(f_format)
+log.addHandler(hdlr)
 
 def str_normalize(my_string):
     my_string = my_string.replace("\\t\\t\\t\\t", "")
@@ -257,7 +272,7 @@ class Accessorio(PageProduct):
             for tr in self.additionals:
                 self.additional_dict[tr.th.text] = tr.td.p.text
         except:
-            print("Problema nella lettura delle informazioni nel file %s: " % self.html_filename)
+            log.info("Problema nella lettura delle informazioni nel file %s: " % self.html_filename)
 
 
 class Donna(PageProduct):
@@ -319,7 +334,7 @@ class Donna(PageProduct):
             for tr in self.additionals:
                 self.additional_dict[tr.th.text] = tr.td.p.text
         except:
-            print("Problema nella lettura delle informazioni nel file %s: " % self.html_filename)
+            log.info("Problema nella lettura delle informazioni nel file %s: " % self.html_filename)
 
 
 class Uomo(PageProduct):
@@ -382,7 +397,7 @@ class Uomo(PageProduct):
             for tr in self.additionals:
                 self.additional_dict[tr.th.text] = tr.td.p.text
         except:
-            print("Problema nella lettura delle informazioni nel file %s: " % self.html_filename)
+            log.info("Problema nella lettura delle informazioni nel file %s: " % self.html_filename)
 
 
 class Bambino(PageProduct):
@@ -445,7 +460,7 @@ class Bambino(PageProduct):
             for tr in self.additionals:
                 self.additional_dict[tr.th.text] = tr.td.p.text
         except:
-            print("Problema nella lettura delle informazioni nel file %s: " % self.html_filename)
+            log.info("Problema nella lettura delle informazioni nel file %s: " % self.html_filename)
 
 
 # Lista di Shoe
@@ -481,8 +496,7 @@ if __name__ == "__main__":
                 product_instance = cat_url[0](html_filepath, product_urls[i], i)
                 product_objects.append(product_instance)
             except:
-                print(i)
-                print("IMPOSSIBILE ACQUISIRE DATI DA %s" % product_instance.html_filename)
+                log.info("IMPOSSIBILE ACQUISIRE DATI DA %s" % product_instance.html_filename)
 
         keys = dict()
         for product in product_objects:
@@ -498,7 +512,7 @@ if __name__ == "__main__":
         for product in product_objects:
             l = list()
             fieldcsv = product.get_csv()
-            print(fieldcsv["Descrizione HTML"])
+
             for key in headers:
                 try:
                     l.append(fieldcsv[key])
@@ -515,7 +529,7 @@ if __name__ == "__main__":
             filecsv = '%s%s.csv' % (html_filepath, cat_url[0].__name__)
             numpy.savetxt(filecsv, rows,
                 header='|'.join(x for x in headers), encoding="utf8", delimiter="|", fmt='%s')
-            print("------ Scritto il file %s" % filecsv)
+            log.info("Completata la creazione del file CSV %s" % filecsv)
         except Exception as e:
             raise
 
