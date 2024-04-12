@@ -7,6 +7,22 @@ import requests
 from bs4 import BeautifulSoup
 import io
 import time
+import logging
+
+LOGLVL_INFO = logging.INFO
+LOGLVL_DEBUG = logging.DEBUG
+LOGLVL_ERROR = logging.ERROR
+LOGLVL_WARNING = logging.WARNING
+LOGLVL_DEFAULT = LOGLVL_INFO
+
+log = logging.getLogger()
+log.setLevel(LOGLVL_DEFAULT)
+
+file = "/home/shoes/logs/apishoes.log"
+f_format = logging.Formatter('[%(asctime)s]-[%(levelname)s]-%(message)s')
+hdlr = logging.FileHandler(file)
+hdlr.setFormatter(f_format)
+log.addHandler(hdlr)
 
 
 class PageCategory:
@@ -261,7 +277,7 @@ class Accessorio(PageProduct):
             for tr in self.additionals:
                 self.additional_dict[tr.th.text] = tr.td.p.text
         except:
-            print("Problema nella lettura delle informazioni nel file %s: " % self.html_filename)
+            log.error("Problema nella lettura delle informazioni nel file %s: " % self.html_filename)
 
 
 class Donna(PageProduct):
@@ -514,7 +530,6 @@ def scrap():
 
     start_time = time.time()
     scrapped_files = []
-    # html_filepath = "C:\\Users\\davide\\PycharmProjects\\ScrapShoes\\src\\"
     html_filepath = "/home/shoes/public_html/www/scrap/"
 
     # Per ogni categoria di scarpesp.com della lista
@@ -523,18 +538,17 @@ def scrap():
         category_instance = PageCategory(html_filepath, cat_url[1], cat_url[0].__name__)
         category_instance.scrap_products_urls()
         product_urls = category_instance.products_urls
-        #print("Sono stati estratti %d URL di Prodotti dalla categoria %s" % (len(product_urls), category_instance.url))
+        log.info("Sono stati estratti %d URL di Prodotti dalla categoria %s" % (len(product_urls), category_instance.url))
 
-        headers = ""
         product_objects = list()
+        product_instance = None
         for i in range(0, len(product_urls)):
             try:
                 product_instance = cat_url[0](html_filepath, product_urls[i], i)
                 product_objects.append(product_instance)
             except:
-                # print(i)
-                raise
-                # print("IMPOSSIBILE ACQUISIRE DATI DA %s" % p.html_filename)
+                log.error("IMPOSSIBILE ACQUISIRE DATI DA %s prodotto con indice %d" %
+                          (product_instance.html_filename, i))
 
         keys = dict()
         for product in product_objects:
@@ -545,34 +559,34 @@ def scrap():
                     keys[key] = 1
 
         headers = keys.keys()
-        # for key in headers:
-        #     print("%s: %s" % (key, keys[key]))
-        # print(keys.keys())
 
         rows = list()
         for product in product_objects:
             l = list()
-            for key in keys.keys():
+            fieldcsv = product.get_csv()
+            for key in headers:
                 try:
-                    l.append(product.get_csv()[key])
+                    if key != 'Descrizione HTML':
+                        l.append(fieldcsv[key])
+                    else:
+                        l.append("")
                 except KeyError as e:
                     continue
                 except:
                     raise
-            rows.append('|'.join('{x}' for x in l))
+
+            row = '|'.join([field for field in l if type(field)])
+            rows.append(row)
 
         try:
             filecsv = '%s%s.csv' % (html_filepath, cat_url[0].__name__)
             numpy.savetxt(filecsv, rows,
-                          header='|'.join(x for x in headers), delimiter="|", fmt='% s')
-            #print("------ Scritto il file %s" % filecsv)
-        except:
+                          header='|'.join(x for x in headers), encoding="windows-1252", delimiter="|", fmt='%s')
+            log.info("E' stato scritto il file %s" % filecsv)
+        except Exception as e:
             raise
 
         scrapped_files.append('%s.csv' % cat_url[0].__name__)
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    #print("Elapsed time: ", elapsed_time)
 
 
 def application(environ, start_response):
@@ -580,7 +594,6 @@ def application(environ, start_response):
     request_method = environ['REQUEST_METHOD']
     apiRichiesta = str(environ['QUERY_STRING'])
     if request_method == 'GET':
-    #if True:
         # Distinguere in base al parametro la chiamata la funzione
         if apiRichiesta == "type=scrap":
             output = scrap()

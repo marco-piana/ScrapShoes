@@ -471,7 +471,7 @@ if __name__ == "__main__":
         category_instance = PageCategory(html_filepath, cat_url[1], cat_url[0].__name__)
         category_instance.scrap_products_urls()
         product_urls = category_instance.products_urls
-        print("Sono stati estratti %d URL di Prodotti dalla categoria %s" % (len(product_urls), category_instance.url))
+        #print("Sono stati estratti %d URL di Prodotti dalla categoria %s" % (len(product_urls), category_instance.url))
 
         headers = ""
         product_objects = list()
@@ -493,38 +493,28 @@ if __name__ == "__main__":
                     keys[key] = 1
 
         headers = keys.keys()
-        # for key in headers:
-        #     print("%s: %s" % (key, keys[key]))
-        # print(keys.keys())
 
         rows = list()
         for product in product_objects:
             l = list()
             fieldcsv = product.get_csv()
+            print(fieldcsv["Descrizione HTML"])
             for key in headers:
                 try:
-                    if key != 'Descrizione HTML':
-                        l.append(fieldcsv[key])
-                    else:
-                        l.append("")
+                    l.append(fieldcsv[key])
                 except KeyError as e:
                     continue
                 except:
                     raise
 
-            # for field in l:
-            #     print("%s - (%s) %s" % (type(field), key, field))
             row = '|'.join([field for field in l if type(field)])
             rows.append(row)
-            if 'u1d2c' in row:
-                print(i)
-                print("trovata")
 
 
         try:
             filecsv = '%s%s.csv' % (html_filepath, cat_url[0].__name__)
             numpy.savetxt(filecsv, rows,
-                          header='|'.join(x for x in headers), encoding="windows-1252", delimiter="|", fmt='%s')
+                header='|'.join(x for x in headers), encoding="utf8", delimiter="|", fmt='%s')
             print("------ Scritto il file %s" % filecsv)
         except Exception as e:
             raise
