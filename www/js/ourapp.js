@@ -7,6 +7,7 @@ function handleFileSelect() {
 
     // Avvia il caricamento
     $("#loader").show();
+    $("#resultInvio").hide();
     $("#resultInvio").empty();
     var apiURL = "https://shoes.ourapp.it/api?type=scrap";
     var jqxhr = $.get( apiURL, function(data, textStatus, jqXHR) {
@@ -19,7 +20,7 @@ function handleFileSelect() {
         tr.appendChild(addColumn("FILE", "th"));
         table.appendChild(tr);
 
-        for (var i = 0; i < arr.length; i++){
+        for (var i = 0; i < arr.length; i++) {
             var tr = document.createElement('tr');
             var row = '<a href="https://shoes.ourapp.it/scrap/' + arr[i] + '">' + arr[i] + '</a>';
             tr.appendChild(addColumn(row, "td"));
