@@ -541,7 +541,7 @@ def application(environ, start_response):
     if request_method == 'GET':
         # Distinguere in base al parametro la chiamata la funzione
         if apiRichiesta == "type=scrap":
-            output = scrap()
+            output = ", ".join(x for x in scrap())
         else:
             output = "0x10: Comando GET non accettato."
 
