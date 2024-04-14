@@ -1,24 +1,8 @@
-
 def application(environ, start_response):
-    import logging
+    import sys
+    sys.path.insert(0, '/home/shoes/public_html/api')
 
     from lib import scrap, clean_scrap
-
-    LOGLVL_INFO = logging.INFO
-    LOGLVL_DEBUG = logging.DEBUG
-    LOGLVL_ERROR = logging.ERROR
-    LOGLVL_WARNING = logging.WARNING
-    LOGLVL_DEFAULT = LOGLVL_INFO
-
-    log = logging.getLogger()
-    log.setLevel(LOGLVL_DEFAULT)
-
-    file = "/home/shoes/logs/apishoes.log"
-    f_format = logging.Formatter('[%(asctime)s]-[%(levelname)s]-%(message)s')
-    hdlr = logging.FileHandler(file)
-    hdlr.setFormatter(f_format)
-    log.addHandler(hdlr)
-
 
     status = '200 OK'
     request_method = environ['REQUEST_METHOD']
