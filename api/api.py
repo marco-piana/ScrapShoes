@@ -1,6 +1,6 @@
 import logging
 
-from api.scrap import scrap, clean_scrap
+from scrap import scrap, clean_scrap
 
 LOGLVL_INFO = logging.INFO
 LOGLVL_DEBUG = logging.DEBUG

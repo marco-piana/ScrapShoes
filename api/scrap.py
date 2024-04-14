@@ -19,7 +19,7 @@ LOGLVL_DEFAULT = LOGLVL_INFO
 log = logging.getLogger()
 log.setLevel(LOGLVL_DEFAULT)
 
-file = "C:\\Users\\davide\\PycharmProjects\\ScrapShoes\\apishoes.log"
+file = "/home/shoes/logs/apishoes.log"
 f_format = logging.Formatter('[%(asctime)s]-[%(levelname)s]-%(message)s')
 hdlr = logging.FileHandler(file)
 hdlr.setFormatter(f_format)
