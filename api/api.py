@@ -2,7 +2,7 @@
 def application(environ, start_response):
     import logging
 
-    from scrap import scrap, clean_scrap
+    from lib import scrap, clean_scrap
 
     LOGLVL_INFO = logging.INFO
     LOGLVL_DEBUG = logging.DEBUG
