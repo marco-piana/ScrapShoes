@@ -42,5 +42,19 @@ function handleFileSelect() {
     })
 
 }
+
+function cleanFiles() {
+    var apiURL = "https://shoes.ourapp.it/api?type=clean";
+    var jqxhr = $.get( apiURL, function(data, textStatus, jqXHR) {
+        // Arrivo della lista dei file in json
+        console.log(data);
+    })
+    .fail(function(err) {
+        console.log("Errore nella richiesta di cancellazione file: ".err);
+    })
+}
+
+
 $("#loader").hide();
 document.getElementById('the_form').addEventListener('submit', handleFileSelect, false);
+document.getElementById('clean_form').addEventListener('submit', cleanFiles, false);
