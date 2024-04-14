@@ -1,5 +1,4 @@
 import cStringIO
-import os
 import urllib
 import uuid
 import bs4
@@ -7,6 +6,8 @@ import numpy
 from bs4 import BeautifulSoup
 import io
 import time
+import os
+import glob
 import logging
 
 LOGLVL_INFO = logging.INFO
@@ -18,7 +19,7 @@ LOGLVL_DEFAULT = LOGLVL_INFO
 log = logging.getLogger()
 log.setLevel(LOGLVL_DEFAULT)
 
-file = "/home/shoes/logs/apishoes.log"
+file = "C:\\Users\\davide\\PycharmProjects\\ScrapShoes\\apishoes.log"
 f_format = logging.Formatter('[%(asctime)s]-[%(levelname)s]-%(message)s')
 hdlr = logging.FileHandler(file)
 hdlr.setFormatter(f_format)
@@ -39,6 +40,7 @@ def str_normalize(my_string):
     my_string = my_string.replace("\\u00a0", u"\u00a0")
     my_string = my_string.replace("\\u1d2c", u"\u1d2c")
     my_string = my_string.replace("\\u00e0", u"\u00e0")
+    my_string = my_string.replace("\\u00eb", u"\u00eb")
 
     return my_string[1:-1]
 
@@ -124,10 +126,6 @@ class PageCategory:
         f = open("%s%s" % (self.filespath, html_filename), "w")
         f.write(str_io_response.getvalue())
         f.close()
-
-    def print_product_urls(self):
-        for url in self.products_urls:
-            print(url)
 
     def scrap_products_urls(self):
         for page in self.pages:
@@ -463,10 +461,7 @@ class Bambino(PageProduct):
             log.info("Problema nella lettura delle informazioni nel file %s: " % self.html_filename)
 
 
-# Lista di Shoe
-shoes = []
-
-if __name__ == "__main__":
+def scrap(html_filepath):
     # Urls delle categorie da dove estrarre i singoli articoli
     categorie_urls = [
         [Donna, "https://scarpesp.com/categoria-prodotto/donna/?count=36&paged="],
@@ -474,11 +469,7 @@ if __name__ == "__main__":
         [Bambino, "https://scarpesp.com/categoria-prodotto/bambino/?count=36&paged="],
         [Accessorio, "https://scarpesp.com/categoria-prodotto/accessori/?count=36&paged="],
     ]
-
-    start_time = time.time()
     scrapped_files = []
-    #html_filepath = "C:\\Users\\davide\\PycharmProjects\\ScrapShoes\\src\\"
-    html_filepath = "/home/shoes/public_html/www/scrap/"
 
     # Per ogni categoria di scarpesp.com della lista
     for cat_url in categorie_urls:
@@ -486,7 +477,7 @@ if __name__ == "__main__":
         category_instance = PageCategory(html_filepath, cat_url[1], cat_url[0].__name__)
         category_instance.scrap_products_urls()
         product_urls = category_instance.products_urls
-        #print("Sono stati estratti %d URL di Prodotti dalla categoria %s" % (len(product_urls), category_instance.url))
+        log.info("Sono stati estratti %d URL di Prodotti dalla categoria %s" % (len(product_urls), category_instance.url))
 
         headers = ""
         product_objects = list()
@@ -524,18 +515,37 @@ if __name__ == "__main__":
             row = '|'.join([field for field in l if type(field)])
             rows.append(row)
 
-
         try:
             filecsv = '%s%s.csv' % (html_filepath, cat_url[0].__name__)
             numpy.savetxt(filecsv, rows,
-                header='|'.join(x for x in headers), encoding="utf8", delimiter="|", fmt='%s')
-            log.info("Completata la creazione del file CSV %s" % filecsv)
+                          header='|'.join(x for x in headers), encoding="utf8", delimiter="|", fmt='%s')
+            log.info("E' stato scritto il file %s" % filecsv)
         except Exception as e:
             raise
 
         scrapped_files.append('%s.csv' % cat_url[0].__name__)
+
+    return scrapped_files
+
+
+def clean_scrap(html_filepath):
+    try:
+        filessrc = "%s%s" % (html_filepath, "*.html")
+        for f in glob.glob(filessrc):
+            os.remove(f)
+        return "I file %s sono stati cancellati"
+
+    except Exception as e:
+        return "Errore nella cancellazione dei file: %s" % e.message
+
+
+if __name__ == "__main__":
+    # Urls delle categorie da dove estrarre i singoli articoli
+    start_time = time.time()
+
+    # html_filepath = "C:\\Users\\davide\\PycharmProjects\\ScrapShoes\\src\\"
+    # scrapped_files = scrap("C:\\Users\\davide\\PycharmProjects\\ScrapShoes\\src\\")
+    # clean_scrap("C:\\Users\\davide\\PycharmProjects\\ScrapShoes\\src\\")
     end_time = time.time()
     elapsed_time = end_time - start_time
-    print("Elapsed time: ", elapsed_time)
-
-    #TODO: al termine dello scrapping va restituito il nome di ogni file csv generato oppure il messaggio di errore
+    log.info("Elapsed time: %s" % elapsed_time)
