@@ -7,6 +7,7 @@ function handleFileSelect() {
 
     // Avvia il caricamento
     $("#loader").show();
+    $("#resultInvio").empty();
     var apiURL = "https://shoes.ourapp.it/api?type=scrap";
     var jqxhr = $.get( apiURL, function(data, textStatus, jqXHR) {
         // Arrivo della lista dei file in json
