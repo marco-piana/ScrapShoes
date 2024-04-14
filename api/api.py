@@ -12,7 +12,7 @@ def application(environ, start_response):
         if apiRichiesta == "type=scrap":
             scraped_csv = scrap("/home/shoes/public_html/www/scrap/")
             output = ", ".join(x for x in scraped_csv)
-        if apiRichiesta == "type=clean":
+        elif apiRichiesta == "type=clean":
             output = clean_scrap("/home/shoes/public_html/www/scrap/")
         else:
             output = "0x10: Comando GET non accettato."
